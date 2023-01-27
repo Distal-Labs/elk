@@ -13,8 +13,13 @@
 name: Deploy to Cloudflare Pages
 
 on:
-  push:
-    branch: release
+  # Uncomment *ONLY* this to enable CD for every new release
+  # push:
+  #   tags:
+  #     - 'v*'
+  # Uncomment *ONLY* this to enable CD for every push to the `main` branch
+  # push:
+  #   branch: main
   workflow_dispatch: {}
 
 jobs:
