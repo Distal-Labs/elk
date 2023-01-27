@@ -1,0 +1,51 @@
+# ########## Template for deployment to Cloudflare Pages upon new release ###########
+# This GitHub Action requires the following configuration variables
+# - NODE_ENV
+# - NUXT_PUBLIC_DEFAULT_SERVER
+# - NUXT_DEPLOY_URL
+# This GitHub Action requires the following configuration secrets:
+# - GH_CLOUDFLARE_API_TOKEN
+# - NUXT_CLOUDFLARE_API_TOKEN
+# - NUXT_CLOUDFLARE_NAMESPACE_ID
+# - CLOUDFLARE_ACCOUNT_ID
+# ###################################################################################
+
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Build
+        run: npx pnpm i && pnpm run build
+        env:
+          # Setting environment variables with the value of configuration variables
+          NODE_ENV: ${{ vars.NODE_ENV }}
+          NUXT_PUBLIC_DEFAULT_SERVER: ${{ vars.NUXT_PUBLIC_DEFAULT_SERVER }}
+          NUXT_DEPLOY_URL: ${{ vars.NUXT_DEPLOY_URL }}
+          NUXT_STORAGE_DRIVER: cloudflare
+          # Setting environment variables with the value of secrets
+          NUXT_CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NUXT_CLOUDFLARE_API_TOKEN: ${{ secrets.NUXT_CLOUDFLARE_API_TOKEN }}
+          NUXT_CLOUDFLARE_NAMESPACE_ID: ${{ secrets.NUXT_CLOUDFLARE_NAMESPACE_ID }}
+      - name: Publish
+        uses: cloudflare/pages-action@1
+        with:
+          apiToken: ${{ secrets.GH_CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: elk
+          directory: .output/public
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
