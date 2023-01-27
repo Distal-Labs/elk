@@ -54,5 +54,5 @@ jobs:
           apiToken: ${{ secrets.GH_CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: elk
-          directory: .output/public
+          directory: .output
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
