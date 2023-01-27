@@ -30,7 +30,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Build
-        run: npx pnpm i && pnpm run build
+        run: npm install -g pnpm && pnpm i --store=node_modules/.pnpm-store && pnpm run build
         env:
           # Setting environment variables with the value of configuration variables
           NODE_ENV: ${{ vars.NODE_ENV }}
