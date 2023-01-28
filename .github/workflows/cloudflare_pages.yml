@@ -18,8 +18,8 @@ on:
   #   tags:
   #     - 'v*'
   # Uncomment *ONLY* this to enable CD for every push to the `main` branch
-  push:
-    branch: main
+  # push:
+  #   branch: main
   workflow_dispatch: {}
 
 jobs:
