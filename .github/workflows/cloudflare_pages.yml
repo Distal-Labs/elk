@@ -44,7 +44,7 @@ jobs:
           cache: pnpm
 
       - name: Install build dependencies
-        run: npm install -g pnpm && pnpm i --frozen-lockfile --store=node_modules/.pnpm-store
+        run: npm install -g pnpm && pnpm i --frozen-lockfile
 
       - name: Build Elk
         run: pnpm run build
