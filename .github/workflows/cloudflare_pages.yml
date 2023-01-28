@@ -18,8 +18,8 @@ on:
   #   tags:
   #     - 'v*'
   # Uncomment *ONLY* this to enable CD for every push to the `main` branch
-  # push:
-  #   branch: main
+  push:
+    branch: main
   workflow_dispatch: {}
 
 jobs:
@@ -34,13 +34,24 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - run: corepack enable
+
+      - name: Set node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: pnpm
+
       - name: Install build dependencies
         run: npm install -g pnpm && pnpm i --frozen-lockfile --store=node_modules/.pnpm-store
+
       - name: Build Elk
         run: pnpm run build
         env:
           # Setting environment variables with the value of configuration variables
           NODE_ENV: ${{ vars.NODE_ENV }}
+          PORT: ${{ vars.PORT }}
           NUXT_PUBLIC_DEFAULT_SERVER: ${{ vars.NUXT_PUBLIC_DEFAULT_SERVER }}
           NUXT_DEPLOY_URL: ${{ vars.NUXT_DEPLOY_URL }}
           NUXT_STORAGE_DRIVER: cloudflare
@@ -48,6 +59,7 @@ jobs:
           NUXT_CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           NUXT_CLOUDFLARE_API_TOKEN: ${{ secrets.NUXT_CLOUDFLARE_API_TOKEN }}
           NUXT_CLOUDFLARE_NAMESPACE_ID: ${{ secrets.NUXT_CLOUDFLARE_NAMESPACE_ID }}
+
       - name: Publish
         uses: cloudflare/pages-action@1
         with:
