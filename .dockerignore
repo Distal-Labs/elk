@@ -17,3 +17,8 @@ public/emojis
 *~
 *swp
 *swo
+
+ENV/
+.env
+.env*
+*.code-workspace
