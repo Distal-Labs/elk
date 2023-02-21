@@ -43,7 +43,7 @@ jobs:
           NUXT_PUBLIC_DEFAULT_SERVER: ${{ vars.NUXT_PUBLIC_DEFAULT_SERVER }}
           NUXT_STORAGE_DRIVER: kv-binding
           VITE_DEV_PWA: true
-          NITRO_PRESET: cloudflare
+          NITRO_PRESET: cloudflare_pages
 
       - name: Publish
         uses: cloudflare/pages-action@1
