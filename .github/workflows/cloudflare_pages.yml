@@ -1,15 +1,3 @@
-# ########## Template for deployment to Cloudflare Pages upon new release ###########
-# This GitHub Action requires the following configuration variables
-# - NODE_ENV
-# - NUXT_PUBLIC_DEFAULT_SERVER
-# - NUXT_DEPLOY_URL
-# This GitHub Action requires the following configuration secrets:
-# - GH_CLOUDFLARE_API_TOKEN
-# - NUXT_CLOUDFLARE_API_TOKEN
-# - NUXT_CLOUDFLARE_NAMESPACE_ID
-# - CLOUDFLARE_ACCOUNT_ID
-# ###################################################################################
-
 name: Deploy to Cloudflare Pages
 
 on:
@@ -19,7 +7,7 @@ on:
   #     - 'v*'
   # Uncomment *ONLY* this to enable CD for every push to the `main` branch
   # push:
-  #   branch: main
+  #   branch: release
   workflow_dispatch: {}
 
 jobs:
@@ -49,22 +37,19 @@ jobs:
       - name: Build Elk
         run: pnpm run build
         env:
-          # Setting environment variables with the value of configuration variables
-          NODE_ENV: ${{ vars.NODE_ENV }}
-          PORT: ${{ vars.PORT }}
-          NUXT_PUBLIC_DEFAULT_SERVER: ${{ vars.NUXT_PUBLIC_DEFAULT_SERVER }}
+          HOST: 0.0.0.0
+          NODE_ENV: production
           NUXT_DEPLOY_URL: ${{ vars.NUXT_DEPLOY_URL }}
-          NUXT_STORAGE_DRIVER: cloudflare
-          # Setting environment variables with the value of secrets
-          NUXT_CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          NUXT_CLOUDFLARE_API_TOKEN: ${{ secrets.NUXT_CLOUDFLARE_API_TOKEN }}
-          NUXT_CLOUDFLARE_NAMESPACE_ID: ${{ secrets.NUXT_CLOUDFLARE_NAMESPACE_ID }}
+          NUXT_PUBLIC_DEFAULT_SERVER: ${{ vars.NUXT_PUBLIC_DEFAULT_SERVER }}
+          NUXT_STORAGE_DRIVER: kv-binding
+          VITE_DEV_PWA: true
+          NITRO_PRESET: cloudflare
 
       - name: Publish
         uses: cloudflare/pages-action@1
         with:
-          apiToken: ${{ secrets.GH_CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: elk
           directory: .output/public
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+          apiToken: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
