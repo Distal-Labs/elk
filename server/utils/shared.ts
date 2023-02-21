@@ -1,7 +1,6 @@
 import fs from 'unstorage/drivers/fs'
 import memory from 'unstorage/drivers/memory'
 import kv from 'unstorage/drivers/cloudflare-kv-http'
-import kvb from 'unstorage/drivers/cloudflare-kv-binding'
 
 import { $fetch } from 'ofetch'
 import type { Storage } from 'unstorage'
@@ -29,10 +28,6 @@ else if (driver === 'cloudflare') {
     namespaceId: config.cloudflare.namespaceId,
     apiToken: config.cloudflare.apiToken,
   })))
-}
-else if (driver === 'kv-binding') {
-  const config = useRuntimeConfig()
-  storage.mount('servers', kvb({ binding: config.storage.kvBinding }))
 }
 else if (driver === 'memory') {
   storage.mount('servers', memory())
