@@ -97,7 +97,7 @@ export default defineNuxtConfig({
       // our default translation server #76
       translateApi: '',
       // Use the instance where Elk has its Mastodon account as the default
-      defaultServer: 'm.webtoo.ls',
+      defaultServer: 'fedified.com',
       singleInstance: false,
     },
     storage: {
@@ -203,14 +203,14 @@ export default defineNuxtConfig({
         value: {
           'default-src': ['\'self\''],
           'base-uri': ['\'self\''],
-          'connect-src': ['\'self\'', 'https:', 'http:', 'wss:', 'ws:'],
+          'connect-src': ['\'self\'', 'https:', 'wss:', 'https://*.cloudflareinsights.com'],
           'font-src': ['\'self\''],
           'form-action': ['\'none\''],
           'frame-ancestors': ['\'none\''],
-          'img-src': ['\'self\'', 'https:', 'http:', 'data:', 'blob:'],
-          'media-src': ['\'self\'', 'https:', 'http:'],
+          'img-src': ['\'self\'', 'https:', 'data:', 'https://*.fedified.com'],
+          'media-src': ['\'self\'', 'https:', 'https://*.fedified.com'],
           'object-src': ['\'none\''],
-          'script-src': ['\'self\'', '\'unsafe-inline\'', '\'wasm-unsafe-eval\''],
+          'script-src': ['\'self\'', '\'unsafe-inline\'', '\'unsafe-eval\'', 'https://*.cloudflareinsights.com'],
           'script-src-attr': ['\'none\''],
           'style-src': ['\'self\'', '\'unsafe-inline\''],
           'upgrade-insecure-requests': true,
