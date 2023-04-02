@@ -515,7 +515,7 @@
     "add_existing": "Kirjaudu lisätilille",
     "server_address_label": "Mastodon-palvelimesi osoite",
     "sign_in_desc": "Kirjaudu sisään voidaksesi seurata muita ihmisiä ja aiheita, sekä keskustellaksesi ja jakaaksesi viestejä.",
-    "sign_in_notice_title": "{0}:n julkisten tietojen katselu",
+    "sign_in_notice_title": "Mastodon:n julkisten tietojen katselu",
     "sign_out_account": "Kirjaa {0} ulos",
     "tip_no_account": "Jos sinulla ei ole vielä tiliä, {0}.",
     "tip_register_account": "valitse palvelimesi ja luo tili"

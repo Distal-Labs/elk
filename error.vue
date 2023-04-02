@@ -19,10 +19,10 @@ const defaultMessage = 'Something went wrong'
 const message = error.message ?? errorCodes[error.statusCode!] ?? defaultMessage
 
 const state = ref<'error' | 'reloading'>('error')
-const reload = async () => {
+async function reload() {
   state.value = 'reloading'
   try {
-    clearError({ redirect: currentUser.value ? '/home' : `/${currentServer.value}/public/local` })
+    clearError({ redirect: currentUser.value ? '/home' : `/${currentServer.value}/public` })
   }
   catch (err) {
     console.error(err)

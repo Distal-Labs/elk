@@ -398,7 +398,7 @@
     "add_existing": "Afig un compte existent",
     "server_address_label": "Adreça del servidor de Mastodon",
     "sign_in_desc": "Inicia la sessió per a seguir perfils o etiquetes, marcar com a preferides, compartir i respondre a les publicacions, o interactuar des d'un compte en un servidor diferent.",
-    "sign_in_notice_title": "Veient les dades públiques de: {0}",
+    "sign_in_notice_title": "Veient les dades públiques de: Mastodon",
     "sign_out_account": "Tanca {0}",
     "tip_no_account": "Si encara no tens un compte de Mastodon, {0}.",
     "tip_register_account": "tria un servidor i registra't"

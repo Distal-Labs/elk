@@ -575,7 +575,7 @@
     "add_existing": "既存のアカウントを追加する",
     "server_address_label": "Mastodonサーバーのアドレス",
     "sign_in_desc": "サインインすると、アカウントやハッシュタグのフォロー、お気に入りの追加、投稿の共有、投稿への返信のほか、異なるサーバー上のあなたのアカウントから交流できるようになります。",
-    "sign_in_notice_title": "{0}の公開データを表示しています",
+    "sign_in_notice_title": "Mastodon の公開データを表示しています",
     "sign_out_account": "{0}からサインアウト",
     "single_instance_sign_in_desc": "サインインすると、プロファイルやハッシュタグのフォロー、投稿のお気に入り、共有、返信ができるようになります。",
     "tip_no_account": "まだMastodonアカウントを持っていない場合は、{0}しましょう。",

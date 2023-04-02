@@ -574,7 +574,7 @@
     "add_existing": "Ajouter un compte existant",
     "server_address_label": "Adresse du serveur mastodon",
     "sign_in_desc": "Connectez-vous pour suivre des profils ou des hashtags, aimer, partagez et répondre à des messages, ou interagir à partir de votre compte d'autre serveur.",
-    "sign_in_notice_title": "Affichage de {0} données publiques",
+    "sign_in_notice_title": "Affichage de Mastodon données publiques",
     "sign_out_account": "Se déconnecter de {0}",
     "single_instance_sign_in_desc": "Connectez-vous pour suivre des profils ou des hashtags, aimer, partager et répondre aux messages.",
     "tip_no_account": "Si vous n'avez pas encore de compte Mastodon, {0}.",

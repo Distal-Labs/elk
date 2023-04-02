@@ -570,7 +570,7 @@
     "add_existing": "添加现有帐户",
     "server_address_label": "Mastodon 服务器地址",
     "sign_in_desc": "登录后可关注其他人或标签、点赞、分享和回复帖文，或与不同服务器上的账号交互。",
-    "sign_in_notice_title": "正在查看 {0} 的公共数据",
+    "sign_in_notice_title": "正在查看 Mastodon 的公共数据",
     "sign_out_account": "登出 {0}",
     "single_instance_sign_in_desc": "登录后可关注其他人或标签、收藏、分享和回复帖文。",
     "tip_no_account": "如果您还没有 Mastodon 账户，{0}。",

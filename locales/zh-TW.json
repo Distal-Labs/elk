@@ -565,7 +565,7 @@
     "add_existing": "加入現有帳號",
     "server_address_label": "Mastodon 伺服器位置",
     "sign_in_desc": "登入後可追蹤其他人或標籤、點讚、分享和回覆貼文，或與不同伺服器上的帳號互動。",
-    "sign_in_notice_title": "正在查看 {0} 的公共數據",
+    "sign_in_notice_title": "正在查看 Mastodon 的公共數據",
     "sign_out_account": "登出 {0}",
     "tip_no_account": "如果您還沒有 Mastodon 帳號，{0}。",
     "tip_register_account": "選擇您的伺服器並註冊一個"

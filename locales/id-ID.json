@@ -513,7 +513,7 @@
     "add_existing": "Tambahkan akun yang ada",
     "server_address_label": "Alamat Server Mastodon",
     "sign_in_desc": "Masuk untuk mengikuti profil atau hashtag, favorit, berbagi dan membalas posting, atau berinteraksi dari akun Anda di server lain.",
-    "sign_in_notice_title": "Menampilkan data publik {0}",
+    "sign_in_notice_title": "Menampilkan data publik Mastodon",
     "sign_out_account": "Keluar {0}",
     "tip_no_account": "Jika Anda belum memiliki akun Mastodon, {0}.",
     "tip_register_account": "pilih server Anda dan daftarkan"
