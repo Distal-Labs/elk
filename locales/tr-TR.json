@@ -456,7 +456,7 @@
     "add_existing": "Var olan bir hesap ekle",
     "server_address_label": "Mastodon Sunucu Adresi",
     "sign_in_desc": "Profilleri veya hashtag'leri takip etmek, favorilere eklemek, gönderileri paylaşmak ve yanıtlamak veya farklı bir sunucudaki hesabınızdan etkileşim kurmak için oturum açın.",
-    "sign_in_notice_title": "{0} herkese açık veri görüntüleniyor",
+    "sign_in_notice_title": "Mastodon herkese açık veri görüntüleniyor",
     "sign_out_account": "{0} çıkış yap",
     "tip_no_account": "Eğer bir Mastodon hesabınız yoksa, {0}.",
     "tip_register_account": "sunucunuzu seçin ve kaydolun"

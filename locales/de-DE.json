@@ -484,7 +484,7 @@
     "add_existing": "Bestehendes Konto hinzufügen",
     "server_address_label": "Mastodon Server Adresse",
     "sign_in_desc": "Melde dich an, um Profilen oder Hashtags zu folgen, Beiträge zu favorisieren, zu teilen und zu beantworten oder von deinem Konto auf einem anderen Server aus zu interagieren.",
-    "sign_in_notice_title": "Anzeigen von {0} öffentlichen Daten",
+    "sign_in_notice_title": "Anzeigen von Mastodon öffentlichen Daten",
     "sign_out_account": "{0} abmelden",
     "tip_no_account": "Wenn du noch kein Mastodon-Konto hast, {0}.",
     "tip_register_account": "wähle einen Server aus und registriere einen"

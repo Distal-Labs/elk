@@ -603,7 +603,7 @@
     "add_existing": "Gehitu dagoeneko existitzen den kontu bat",
     "server_address_label": "Mastodon zerbitzariaren helbidea",
     "sign_in_desc": "Hasi saioa profil edo traolak jarraitzeko, eta bidalketak gogoko egiteko, partekatzeko, eta erantzuteko edo beste zerbitzari bateko kontuarekin elkarreragiteko.",
-    "sign_in_notice_title": "{0}(e)ko datu publikoak ikusten",
+    "sign_in_notice_title": "Mastodon(e)ko datu publikoak ikusten",
     "sign_out_account": "Amaitu {0}(r)en saioa",
     "single_instance_sign_in_desc": "Hasi saioa profil edo traolak jarraitzeko, eta bidalketak gogoko egiteko, partekatzeko, eta erantzuteko.",
     "tip_no_account": "Oraindik Mastodon kontua ez badaukazu, {0}.",

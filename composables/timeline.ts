@@ -9,18 +9,39 @@ function areStatusesConsecutive(a: mastodon.v1.Status, b: mastodon.v1.Status) {
   return !!inReplyToId && (inReplyToId === a.reblog?.id || inReplyToId === a.id)
 }
 
-function removeFilteredItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext): mastodon.v1.Status[] {
+function removeFilteredItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext, applyExtraFilters: boolean): mastodon.v1.Status[] {
   const isStrict = (filter: mastodon.v1.FilterResult) => filter.filter.filterAction === 'hide' && filter.filter.context.includes(context)
   const isFiltered = (item: mastodon.v1.Status) => (item.account.id === currentUser.value?.account.id) || !item.filtered?.find(isStrict)
   const isReblogFiltered = (item: mastodon.v1.Status) => !item.reblog?.filtered?.find(isStrict)
+  if (applyExtraFilters) {
+    const isKeptInFederated = (item: mastodon.v1.Status) => (item.account.bot !== true) // Remove bots
+    // Remove low-yield accounts
+    && (item.account.displayName.includes('nuop') !== true)
+    && (item.account.followersCount >= 100)
+    // Remove accounts that do not want to be featured
+    && (item.account.locked !== true)
+    && (item.account.discoverable !== false)
+    // filter by language
+    && (item.language === 'en')
+    // Remove NSFW content
+    && (item.spoilerText?.toLowerCase()?.includes('nsfw') !== true)
+    && (item.spoilerText?.toLowerCase()?.includes('nudity') !== true)
+    && (item.content?.toLowerCase()?.includes('nsfw') !== true)
+    && (item.content?.toLowerCase()?.includes('porn') !== true)
+    // Remove Twitter cross-posts
+    && (item.content?.toLowerCase()?.includes('twitter.com') !== true)
+    // Remove replies
+    && ((item.inReplyToId === null) || (status.inReplyToId === undefined))
 
+    return [...items].filter(isFiltered).filter(isReblogFiltered).filter(isKeptInFederated)
+  }
   return [...items].filter(isFiltered).filter(isReblogFiltered)
 }
 
-export function reorderedTimeline(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext = 'public') {
+export function reorderedTimeline(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext = 'public', applyExtraFilters = false) {
   let steps = 0
 
-  const newItems = removeFilteredItems(items, context)
+  const newItems = removeFilteredItems(items, context, applyExtraFilters)
 
   for (let i = newItems.length - 1; i > 0; i--) {
     for (let k = 1; k <= maxDistance && i - k >= 0; k++) {
