@@ -14,7 +14,7 @@ export const dialogDraftKey = ref<string>()
 
 export const commandPanelInput = ref('')
 
-export const isFirstVisit = useLocalStorage(STORAGE_KEY_FIRST_VISIT, !process.mock)
+export const isFirstVisit = useLocalStorage(STORAGE_KEY_FIRST_VISIT, false)
 
 export const isSigninDialogOpen = ref(false)
 export const isPublishDialogOpen = ref(false)
