@@ -34,7 +34,7 @@ function handleShowCommit() {
     <template v-if="isHydrated">
       <SettingsItem
         :text="$t('settings.about.version')"
-        :to="showCommit ? `https://github.com/elk-zone/elk/commit/${buildInfo.commit}` : undefined"
+        :to="showCommit ? `https://github.com/Distal-Labs/elk/commit/${buildInfo.commit}` : undefined"
         external target="_blank"
         @click="handleShowCommit"
       >
@@ -73,7 +73,7 @@ function handleShowCommit() {
     <SettingsItem
       text="GitHub"
       icon="i-ri:github-fill"
-      to="https://github.com/elk-zone/elk"
+      to="https://github.com/Distal-Labs/elk"
       external large target="_blank"
     />
 

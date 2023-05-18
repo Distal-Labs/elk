@@ -61,7 +61,7 @@ function toggleDark() {
         &middot;
         <NuxtLink
           external
-          :href="`https://github.com/elk-zone/elk/commit/${buildInfo.commit}`"
+          :href="`https://github.com/Distal-Labs/elk/commit/${buildInfo.commit}`"
           target="_blank"
           font-mono
         >
@@ -80,7 +80,7 @@ function toggleDark() {
         </NuxtLink>
       </template>
       &middot;
-      <NuxtLink href="/m.webtoo.ls/@elk" target="_blank">
+      <NuxtLink href="/fedified.com/@DataDrivenMD" target="_blank">
         Mastodon
       </NuxtLink>
       &middot;
@@ -88,7 +88,7 @@ function toggleDark() {
         Discord
       </NuxtLink>
       &middot;
-      <NuxtLink href="https://github.com/elk-zone/elk" target="_blank" external>
+      <NuxtLink href="https://github.com/Distal-Labs/elk" target="_blank" external>
         GitHub
       </NuxtLink>
     </div>
