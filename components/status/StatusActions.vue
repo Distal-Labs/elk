@@ -1,15 +1,20 @@
 <script setup lang="ts">
+import { inject, ref } from 'vue'
 import type { mastodon } from 'masto'
+import { domToCanvas } from '../../composables/quote'
 
 const props = defineProps<{
   status: mastodon.v1.Status
   details?: boolean
   command?: boolean
+  quotableElement?: HTMLElement
 }>()
 
 const focusEditor = inject<typeof noop>('focus-editor', noop)
+const attachQuote = inject<typeof noop>('attach-quote', noop)
+const detachQuote = inject<typeof noop>('detach-quote', noop)
 
-const { details, command } = $(props)
+const { details, command, quotableElement } = $(props)
 
 const userSettings = useUserSettings()
 const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
@@ -17,11 +22,59 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 const {
   status,
   isLoading,
+  canQuote,
   canReblog,
   toggleBookmark,
   toggleFavourite,
   toggleReblog,
 } = $(useStatusActions(props))
+
+function shouldNodeBeIncluded<T extends Node>(el: T): boolean
+function shouldNodeBeIncluded(el: Element): boolean {
+  if (['IFRAME'].includes(el.tagName)) {
+    // console.debug(el.tagName)
+    return false
+  }
+
+  if ((el) && (['#text', '#comment', 'IFRAME'].includes(el.nodeName) === false)) {
+    // el.removeAttribute('data-v-inspector')
+    // el.removeAttribute('class')
+    // console.log(el)
+    return (el.getAttribute('src')?.includes('data:image/svg+xml') !== true)
+  }
+
+  return true
+}
+
+async function whatToDoWithBlob(blob: Blob | null) {
+  if (blob)
+    await attachQuote(blob)
+
+  else console.error('NO BLOB!')
+}
+
+const hasQuoted = ref<boolean>(false)
+async function quote() {
+  focusEditor()
+  if (!hasQuoted.value) {
+    if (quotableElement) {
+      const canvasWithQuote = await domToCanvas(quotableElement, {
+        filter: shouldNodeBeIncluded,
+        backgroundColor: '#1a202c',
+        scale: 1.0,
+        font: {
+          preferredFormat: 'woff',
+        },
+      })
+      canvasWithQuote.toBlob(whatToDoWithBlob)
+      hasQuoted.value = !hasQuoted.value
+    }
+  }
+  else {
+    detachQuote()
+    hasQuoted.value = !hasQuoted.value
+  }
+}
 
 function reply() {
   if (!checkLogin())
@@ -51,6 +104,22 @@ function reply() {
           />
         </template>
       </StatusActionButton>
+    </div>
+
+    <div v-if="details && canQuote" flex-1>
+      <StatusActionButton
+        content="Insert Quote"
+        text=""
+        color="text-orange"
+        hover="text-orange"
+        elk-group-hover="bg-orange/10"
+        icon="i-ri:chat-quote-line"
+        active-icon="i-ri:chat-quote-fill"
+        :active="!!hasQuoted"
+        :disabled="isLoading.quotable || !canQuote"
+        :command="command"
+        @click="quote"
+      />
     </div>
 
     <div flex-1>

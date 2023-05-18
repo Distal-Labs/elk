@@ -152,6 +152,22 @@ defineExpose({
   focusEditor: () => {
     editor.value?.commands?.focus?.()
   },
+  attachQuoteToDraft: async (file: any, description: string) => {
+    const countStart = draft.attachments.length
+    await uploadAttachments([file])
+    const countFinish = draft.attachments.length
+    if (countFinish > countStart) {
+      draft.quoteIndex = countFinish - 1
+      await setDescription(draft.attachments[draft.quoteIndex], description)
+    }
+  },
+  detachQuoteFromDraft: () => {
+    if (
+      (draft.quoteIndex !== undefined)
+      && ((draft.attachments.length - 1) >= draft.quoteIndex)
+    )
+      return removeAttachment(draft.quoteIndex)
+  },
 })
 
 onDeactivated(() => {

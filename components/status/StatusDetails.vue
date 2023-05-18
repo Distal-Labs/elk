@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
+import { ref } from 'vue'
 
 const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
@@ -27,43 +28,47 @@ const { t } = useI18n()
 useHydratedHead({
   title: () => `${getDisplayName(status.account)} ${t('common.in')} ${t('app_name')}: "${removeHTMLTags(status.content) || ''}"`,
 })
+
+const quotableElement = ref<any>(null)
 </script>
 
 <template>
   <div :id="`status-${status.id}`" flex flex-col gap-2 pt2 pb1 ps-3 pe-4 relative :lang="status.language ?? undefined" aria-roledescription="status-details">
     <StatusActionsMore :status="status" absolute inset-ie-2 top-2 @after-edit="$emit('refetchStatus')" />
-    <NuxtLink :to="getAccountRoute(status.account)" rounded-full hover:bg-active transition-100 pe5 me-a>
-      <AccountHoverWrapper :account="status.account">
-        <AccountInfo :account="status.account" />
-      </AccountHoverWrapper>
-    </NuxtLink>
-    <StatusContent :status="status" :newer="newer" context="details" />
-    <div flex="~ gap-1" items-center text-secondary text-sm>
-      <div flex>
-        <div>{{ createdAt }}</div>
-        <StatusEditIndicator
-          :status="status"
-          :inline="false"
-        >
-          <span ms1 font-bold cursor-pointer>{{ $t('state.edited') }}</span>
-        </StatusEditIndicator>
-      </div>
-      <div>&middot;</div>
-      <StatusVisibilityIndicator :status="status" />
-      <div v-if="status.application?.name">
-        &middot;
-      </div>
-      <div v-if="status.application?.website && status.application.name">
-        <NuxtLink :to="status.application.website">
-          {{ status.application.name }}
-        </NuxtLink>
-      </div>
-      <div v-else-if="status.application?.name">
-        {{ status.application?.name }}
+    <div ref="quotableElement" style="padding: 2rem;">
+      <NuxtLink :to="getAccountRoute(status.account)" rounded-full hover:bg-active transition-100 pe5 me-a>
+        <AccountHoverWrapper :account="status.account">
+          <AccountInfo :account="status.account" />
+        </AccountHoverWrapper>
+      </NuxtLink>
+      <StatusContent :status="status" :newer="newer" context="details" />
+      <div flex="~ gap-1" items-center text-secondary text-sm>
+        <div flex>
+          <div>{{ createdAt }}</div>
+          <StatusEditIndicator
+            :status="status"
+            :inline="false"
+          >
+            <span ms1 font-bold cursor-pointer>{{ $t('state.edited') }}</span>
+          </StatusEditIndicator>
+        </div>
+        <div>&middot;</div>
+        <StatusVisibilityIndicator :status="status" />
+        <div v-if="status.application?.name">
+          &middot;
+        </div>
+        <div v-if="status.application?.website && status.application.name">
+          <NuxtLink :to="status.application.website">
+            {{ status.application.name }}
+          </NuxtLink>
+        </div>
+        <div v-else-if="status.application?.name">
+          {{ status.application?.name }}
+        </div>
       </div>
     </div>
     <div border="t base" py-2>
-      <StatusActions v-if="actions" :status="status" details :command="command" />
+      <StatusActions v-if="actions" :status="status" details :command="command" :quotable-element="quotableElement" />
     </div>
   </div>
 </template>

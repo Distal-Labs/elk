@@ -51,6 +51,7 @@ export interface Draft {
   attachments: mastodon.v1.MediaAttachment[]
   lastUpdated: number
   mentions?: string[]
+  quoteIndex?: number
 }
 
 export type DraftMap = Record<string, Draft>

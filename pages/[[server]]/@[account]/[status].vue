@@ -2,6 +2,8 @@
 // @ts-expect-error missing types
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
 import type { ComponentPublicInstance } from 'vue'
+import type { mastodon } from 'masto'
+import { provide, ref } from 'vue'
 
 definePageMeta({
   name: 'status',
@@ -49,6 +51,30 @@ function focusEditor() {
 
 provide('focus-editor', focusEditor)
 
+function attachQuote(file: any) {
+  if (status.value) {
+    const quoted: mastodon.v1.Status = status.value
+    const parseContent = (content: string) => {
+      const noP = content.replaceAll('<p>', '').replaceAll('</p>', ' ')
+      const noSpan = noP.replaceAll(/<span .+<\/span>/ig, ' ').replaceAll('  ', ' ')
+      return noSpan
+    }
+    const altTextInitialValue = `Quoting @${quoted.account.acct}\n\nThe original post reads, "${quoted.text ?? parseContent(quoted.content)}"\n\nThe original post is available at ${quoted.uri}`
+    return publishWidget.value?.attachQuoteToDraft(file, altTextInitialValue)
+  }
+  else {
+    console.error('There is no status to quote')
+  }
+}
+
+provide('attach-quote', attachQuote)
+
+function detachQuote() {
+  return publishWidget.value?.detachQuoteFromDraft()
+}
+
+provide('detach-quote', detachQuote)
+
 watch(publishWidget, () => {
   if (window.history.state.focusReply)
     focusEditor()
@@ -81,12 +107,13 @@ onReactivated(() => {
             ref="main"
             :status="status"
             :newer="context?.ancestors.at(-1)"
+            :reply-draft="replyDraft?.draft"
             command
             style="scroll-margin-top: 60px"
             @refetch-status="refreshStatus()"
           />
           <PublishWidget
-            v-if="currentUser"
+            v-if="replyDraft"
             ref="publishWidget"
             border="y base"
             :draft-key="replyDraft!.key"

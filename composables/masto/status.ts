@@ -19,6 +19,7 @@ export function useStatusActions(props: StatusActionsProps) {
 
   // Use different states to let the user press different actions right after the other
   const isLoading = $ref({
+    quotable: false,
     reblogged: false,
     favourited: false,
     bookmarked: false,
@@ -53,6 +54,22 @@ export function useStatusActions(props: StatusActionsProps) {
     if (countField)
       status[countField] += status[action] ? 1 : -1
   }
+
+  const canQuote = $computed(() =>
+    (
+      (status.visibility === 'public')
+      || ((status.visibility !== 'private') && (
+        (status.account.id === currentUser.value?.account.id)
+        && ((status.inReplyToAccountId === null) || (status.inReplyToAccountId === currentUser.value?.account.id))
+      )
+      )
+    )
+     && (
+       ((status.account.discoverable === true) || (status.account.discoverable === null))
+      && ((status.account.locked === false) || (status.account.locked === null))
+      && (status.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) === -1)
+     ),
+  )
 
   const canReblog = $computed(() =>
     status.visibility !== 'direct'
@@ -94,6 +111,7 @@ export function useStatusActions(props: StatusActionsProps) {
   return {
     status: $$(status),
     isLoading: $$(isLoading),
+    canQuote: $$(canQuote),
     canReblog: $$(canReblog),
     toggleMute,
     toggleReblog,
