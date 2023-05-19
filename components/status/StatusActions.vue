@@ -68,6 +68,26 @@ const canQuote = $computed(() =>
     ),
 )
 
+const cannotQuoteReason = $computed((): string => {
+  if (!canQuote) {
+    if (status.visibility === 'private')
+      return 'Unable to quote a private message'
+    else if (status.visibility !== 'public')
+      return 'Quoting disabled because the post is not public'
+    else if ((status.account.discoverable !== true) && (status.account.discoverable !== null))
+      return 'Quoting disabled because the author is not \'discoverable\''
+    else if ((status.account.locked !== false) && (status.account.locked !== null))
+      return 'Quoting disabled because the author\'s account is private'
+    else if ((status.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) !== -1))
+      return 'Quoting disabled because the author has opted out of quoting'
+    else
+      return 'Quoting disabled because the post is ineligible for quoting'
+  }
+  else {
+    return 'Insert Quote'
+  }
+})
+
 const hasQuoted = ref<boolean>(false)
 async function quote() {
   focusEditor()
@@ -123,9 +143,9 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div v-if="details && canQuote" flex-1>
+    <div v-if="details" flex-1>
       <StatusActionButton
-        content="Insert Quote"
+        :content="cannotQuoteReason"
         text=""
         color="text-orange"
         hover="text-orange"
