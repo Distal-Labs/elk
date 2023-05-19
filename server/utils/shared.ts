@@ -33,7 +33,9 @@ else if (driver === 'cloudflare') {
 }
 else if (driver === 'kv-binding') {
   const config = useRuntimeConfig()
-  storage.mount('servers', kvb({ binding: config.storage.kvBinding }))
+  storage.mount('servers', cached(kvb({
+    binding: config.storage.kvBinding,
+  })))
 }
 else if (driver === 'memory') {
   storage.mount('servers', memory())
