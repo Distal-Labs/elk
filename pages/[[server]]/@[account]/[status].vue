@@ -55,11 +55,13 @@ function attachQuote(file: any) {
   if (status.value) {
     const quoted: mastodon.v1.Status = status.value
     const parseContent = (content: string) => {
-      const noP = content.replaceAll('<p>', '').replaceAll('</p>', ' ')
-      const noSpan = noP.replaceAll(/<span .+<\/span>/ig, ' ').replaceAll('  ', ' ')
-      return noSpan
+      const noP = content.replaceAll(/<p[^>]*>/ig, ' ').replaceAll(/<.p[^>]*>/ig, ' ')
+      const noSpan = noP.replaceAll(/<span[^>]*>/ig, ' ').replaceAll(/<.span[^>]*>/ig, ' ')
+      const noAnchor = noSpan.replaceAll(/<a[^>]*>/ig, ' ').replaceAll(/<.a[^>]*>/ig, ' ')
+      const noBr = noAnchor.replaceAll(/<br> */ig, '\n')
+      return noBr.replaceAll(/ {2,}/ig, ' ').replaceAll(/[#] /g, '#').replaceAll(/[@] /g, '@').trim() // .replace('" ', '"').replace(/ ["]$/, '"')
     }
-    const altTextInitialValue = `Quoting @${quoted.account.acct}\n\nThe original post reads, "${quoted.text ?? parseContent(quoted.content)}"\n\nThe original post is available at ${quoted.uri}`
+    const altTextInitialValue = `Quoting @${quoted.account.acct}:\n\n${quoted.text ?? parseContent(quoted.content)}\n\nThe original post is available at ${quoted.uri}`
     return publishWidget.value?.attachQuoteToDraft(file, altTextInitialValue)
   }
   else {

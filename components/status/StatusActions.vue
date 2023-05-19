@@ -22,7 +22,6 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 const {
   status,
   isLoading,
-  canQuote,
   canReblog,
   toggleBookmark,
   toggleFavourite,
@@ -52,6 +51,22 @@ async function whatToDoWithBlob(blob: Blob | null) {
 
   else console.error('NO BLOB!')
 }
+
+const canQuote = $computed(() =>
+  (
+    (status.visibility === 'public')
+    || ((status.visibility !== 'private') && (
+      (status.account.id === currentUser.value?.account.id)
+      && ((status.inReplyToAccountId === null) || (status.inReplyToAccountId === currentUser.value?.account.id))
+    )
+    )
+  )
+    && (
+      ((status.account.discoverable === true) || (status.account.discoverable === null))
+    && ((status.account.locked === false) || (status.account.locked === null))
+    && (status.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) === -1)
+    ),
+)
 
 const hasQuoted = ref<boolean>(false)
 async function quote() {
