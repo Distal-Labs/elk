@@ -58,9 +58,11 @@ async function quote() {
   focusEditor()
   if (!hasQuoted.value) {
     if (quotableElement) {
+      const colorMode = useColorMode()
+      const quoteBackgroundColor = (colorMode.value === 'dark') ? '#1a202c' : '#fafafa'
       const canvasWithQuote = await domToCanvas(quotableElement, {
         filter: shouldNodeBeIncluded,
-        backgroundColor: '#1a202c',
+        backgroundColor: quoteBackgroundColor,
         scale: 1.0,
         font: {
           preferredFormat: 'woff',
