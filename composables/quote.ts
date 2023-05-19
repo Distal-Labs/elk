@@ -1,3 +1,5 @@
+import type { mastodon } from 'masto'
+
 /**
  * ***************************************************************************
  * This module is inspired by/adapted from modern-screenshot
@@ -27,6 +29,62 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+
+export async function attachQuoteToDraft(file: any, publishWidget: Ref<any>, quotedStatus: mastodon.v1.Status): Promise<void> {
+  const parseContent = (content: string) => {
+    const noP = content.replaceAll(/<p[^>]*>/ig, ' ').replaceAll(/<.p[^>]*>/ig, ' ')
+    const noSpan = noP.replaceAll(/<span[^>]*>/ig, ' ').replaceAll(/<.span[^>]*>/ig, ' ')
+    const noAnchor = noSpan.replaceAll(/<a[^>]*>/ig, ' ').replaceAll(/<.a[^>]*>/ig, ' ')
+    const noBr = noAnchor.replaceAll(/<br> */ig, '\n')
+    return noBr.replaceAll(/ {2,}/ig, ' ').replaceAll(/[#] /g, '#').replaceAll(/[@] /g, '@').trim() // .replace('" ', '"').replace(/ ["]$/, '"')
+  }
+  const altTextInitialValue = `Quoting @${quotedStatus.account.acct}:\n\n${quotedStatus.text ?? parseContent(quotedStatus.content)}\n\nThe original post is available at ${quotedStatus.uri}`
+  return await publishWidget.value?.attachQuoteToDraft(file, altTextInitialValue)
+}
+
+export function isQuotable(quotedStatus?: mastodon.v1.Status): boolean {
+  if (quotedStatus) {
+    if (quotedStatus.visibility === 'direct')
+      return false
+
+    return (
+      ((quotedStatus.visibility === 'public') || (
+        (['unlisted', 'private'].includes(quotedStatus.visibility)) && (
+          (quotedStatus.account.id === currentUser.value?.account.id)
+          && ((quotedStatus.inReplyToAccountId === null) || (quotedStatus.inReplyToAccountId === currentUser.value?.account.id))
+        )
+      )) && (
+        ((quotedStatus.account.discoverable === true) || (quotedStatus.account.discoverable === null))
+        && ((quotedStatus.account.locked === false) || (quotedStatus.account.locked === null))
+        && (quotedStatus.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) === -1)
+      ))
+  }
+  else {
+    return false
+  }
+}
+
+export function explainIsQuotable(quotedStatus?: mastodon.v1.Status): string {
+  if (quotedStatus) {
+    if (((quotedStatus.account.locked === false) || (quotedStatus.account.locked === null)) === false)
+      return 'This account is private'
+    else if ((quotedStatus.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) === -1) === false)
+      return 'This account does not allow quoting'
+    // } else if (((quotedStatus.account.discoverable === true) || (quotedStatus.account.discoverable === null)) === false) {
+    //   return 'This account is not discoverable'
+    else if (quotedStatus.visibility === 'direct')
+      return 'Direct messages are not quotable'
+    else if (quotedStatus.visibility !== 'public')
+      return 'Posts with limited or restricted visibility are not quotable'
+    else if ((quotedStatus.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) === -1) === false)
+      return 'This account does not allow quoting'
+    else
+      return 'This post is not quotable'
+  }
+  else {
+    return ''
+  }
+}
 
 // Constants
 const XMLNS = 'http://www.w3.org/2000/svg'
@@ -425,6 +483,23 @@ interface LoadMediaOptions {
 
 type Media = HTMLVideoElement | HTMLImageElement | SVGImageElement
 
+function shouldNodeBeIncluded<T extends Node>(el: T): boolean
+function shouldNodeBeIncluded(el: Element): boolean {
+  if (['IFRAME'].includes(el.tagName)) {
+    // console.debug(el.tagName)
+    return false
+  }
+
+  if ((el) && (['#text', '#comment', 'IFRAME'].includes(el.nodeName) === false)) {
+    // el.removeAttribute('data-v-inspector')
+    // el.removeAttribute('class')
+    // console.log(el)
+    return (el.getAttribute('src')?.includes('data:image/svg+xml') !== true)
+  }
+
+  return true
+}
+
 async function createContext<T extends Node>(node: T, options?: Options & { autoDestruct?: boolean }): Promise<Context<T>> {
   const { scale = 1, workerUrl, workerNumber = 1 } = options || {}
 
@@ -443,7 +518,7 @@ async function createContext<T extends Node>(node: T, options?: Options & { auto
     scale,
     backgroundColor: '#171717',
     style: null,
-    filter: null,
+    filter: shouldNodeBeIncluded,
     maximumCanvasSize: 0,
     timeout: 10000,
     progress: null,

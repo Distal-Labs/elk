@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { inject, ref } from 'vue'
+import { inject } from 'vue'
 import type { mastodon } from 'masto'
-import { domToCanvas } from '../../composables/quote'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
   details?: boolean
   command?: boolean
-  quotableElement?: HTMLElement
-}>()
+  isQuotableStatus?: boolean
+  isBeingQuoted?: boolean
+  explainIsQuotableStatus?: string
+  toggleQuote?: () => Promise<void>
+}>(), {
+  isBeingQuoted: false,
+  isQuotableStatus: false,
+  explainIsQuotableStatus: 'This post is not quotable',
+})
 
 const focusEditor = inject<typeof noop>('focus-editor', noop)
-const attachQuote = inject<typeof noop>('attach-quote', noop)
-const detachQuote = inject<typeof noop>('detach-quote', noop)
 
-const { details, command, quotableElement } = $(props)
+const { details, command, isQuotableStatus, isBeingQuoted, explainIsQuotableStatus, toggleQuote } = $(props)
 
 const userSettings = useUserSettings()
 const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
@@ -28,88 +32,24 @@ const {
   toggleReblog,
 } = $(useStatusActions(props))
 
-function shouldNodeBeIncluded<T extends Node>(el: T): boolean
-function shouldNodeBeIncluded(el: Element): boolean {
-  if (['IFRAME'].includes(el.tagName)) {
-    // console.debug(el.tagName)
-    return false
-  }
-
-  if ((el) && (['#text', '#comment', 'IFRAME'].includes(el.nodeName) === false)) {
-    // el.removeAttribute('data-v-inspector')
-    // el.removeAttribute('class')
-    // console.log(el)
-    return (el.getAttribute('src')?.includes('data:image/svg+xml') !== true)
-  }
-
-  return true
-}
-
-async function whatToDoWithBlob(blob: Blob | null) {
-  if (blob)
-    await attachQuote(blob)
-
-  else console.error('NO BLOB!')
-}
-
-const canQuote = $computed(() =>
-  (
-    (status.visibility === 'public')
-    || ((status.visibility !== 'private') && (
-      (status.account.id === currentUser.value?.account.id)
-      && ((status.inReplyToAccountId === null) || (status.inReplyToAccountId === currentUser.value?.account.id))
-    )
-    )
-  )
-    && (
-      ((status.account.discoverable === true) || (status.account.discoverable === null))
-    && ((status.account.locked === false) || (status.account.locked === null))
-    && (status.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) === -1)
-    ),
-)
-
-const cannotQuoteReason = $computed((): string => {
-  if (!canQuote) {
-    if (status.visibility === 'private')
-      return 'Unable to quote a private message'
-    else if (status.visibility !== 'public')
-      return 'Quoting disabled because the post is not public'
-    else if ((status.account.discoverable !== true) && (status.account.discoverable !== null))
-      return 'Quoting disabled because the author is not \'discoverable\''
-    else if ((status.account.locked !== false) && (status.account.locked !== null))
-      return 'Quoting disabled because the author\'s account is private'
-    else if ((status.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) !== -1))
-      return 'Quoting disabled because the author has opted out of quoting'
-    else
-      return 'Quoting disabled because the post is ineligible for quoting'
-  }
-  else {
-    return 'Insert Quote'
-  }
+const quoteButtonTooltip = $computed((): string => {
+  if (!isQuotableStatus)
+    return explainIsQuotableStatus
+  else
+    return 'Quote this post'
 })
 
-const hasQuoted = ref<boolean>(false)
 async function quote() {
-  focusEditor()
-  if (!hasQuoted.value) {
-    if (quotableElement) {
-      const colorMode = useColorMode()
-      const quoteBackgroundColor = (colorMode.value === 'dark') ? '#1a202c' : '#fafafa'
-      const canvasWithQuote = await domToCanvas(quotableElement, {
-        filter: shouldNodeBeIncluded,
-        backgroundColor: quoteBackgroundColor,
-        scale: 1.0,
-        font: {
-          preferredFormat: 'woff',
-        },
-      })
-      canvasWithQuote.toBlob(whatToDoWithBlob)
-      hasQuoted.value = !hasQuoted.value
-    }
+  if (!checkLogin())
+    return
+  if (details) {
+    if ((isQuotableStatus) && (toggleQuote !== undefined))
+      await toggleQuote()
+    else
+      console.error(quoteButtonTooltip)
   }
   else {
-    detachQuote()
-    hasQuoted.value = !hasQuoted.value
+    navigateToStatus({ status, focusReply: false, quote: true })
   }
 }
 
@@ -119,7 +59,7 @@ function reply() {
   if (details)
     focusEditor()
   else
-    navigateToStatus({ status, focusReply: true })
+    navigateToStatus({ status, focusReply: true, quote: false })
 }
 </script>
 
@@ -143,19 +83,19 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div v-if="details" flex-1>
+    <div flex-1>
       <StatusActionButton
-        :content="cannotQuoteReason"
+        :content="quoteButtonTooltip"
         text=""
         color="text-orange"
         hover="text-orange"
         elk-group-hover="bg-orange/10"
         icon="i-ri:chat-quote-line"
         active-icon="i-ri:chat-quote-fill"
-        :active="!!hasQuoted"
-        :disabled="isLoading.quotable || !canQuote"
+        :active="!!isBeingQuoted"
+        :disabled="!isQuotableStatus"
         :command="command"
-        @click="quote"
+        @click="$event => quote()"
       />
     </div>
 

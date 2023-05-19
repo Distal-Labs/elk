@@ -19,7 +19,6 @@ export function useStatusActions(props: StatusActionsProps) {
 
   // Use different states to let the user press different actions right after the other
   const isLoading = $ref({
-    quotable: false,
     reblogged: false,
     favourited: false,
     bookmarked: false,

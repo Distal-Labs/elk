@@ -4,6 +4,7 @@ import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
 import type { ComponentPublicInstance } from 'vue'
 import type { mastodon } from 'masto'
 import { provide, ref } from 'vue'
+import { attachQuoteToDraft, domToCanvas, isQuotable } from '../../../composables/quote'
 
 definePageMeta({
   name: 'status',
@@ -51,38 +52,73 @@ function focusEditor() {
 
 provide('focus-editor', focusEditor)
 
-function attachQuote(file: any) {
-  if (status.value) {
-    const quoted: mastodon.v1.Status = status.value
-    const parseContent = (content: string) => {
-      const noP = content.replaceAll(/<p[^>]*>/ig, ' ').replaceAll(/<.p[^>]*>/ig, ' ')
-      const noSpan = noP.replaceAll(/<span[^>]*>/ig, ' ').replaceAll(/<.span[^>]*>/ig, ' ')
-      const noAnchor = noSpan.replaceAll(/<a[^>]*>/ig, ' ').replaceAll(/<.a[^>]*>/ig, ' ')
-      const noBr = noAnchor.replaceAll(/<br> */ig, '\n')
-      return noBr.replaceAll(/ {2,}/ig, ' ').replaceAll(/[#] /g, '#').replaceAll(/[@] /g, '@').trim() // .replace('" ', '"').replace(/ ["]$/, '"')
-    }
-    const altTextInitialValue = `Quoting @${quoted.account.acct}:\n\n${quoted.text ?? parseContent(quoted.content)}\n\nThe original post is available at ${quoted.uri}`
-    return publishWidget.value?.attachQuoteToDraft(file, altTextInitialValue)
-  }
-  else {
-    console.error('There is no status to quote')
-  }
-}
+const replyDraft = $computed(() => status.value ? getReplyDraft(status.value) : null)
 
-provide('attach-quote', attachQuote)
+const qStatus = $computed(() => {
+  if (status.value) {
+    const aStatus = (status.value as mastodon.v1.Status)
+    if (aStatus.reblog && (!aStatus.content || aStatus.content === aStatus.reblog.content))
+      return aStatus.reblog
+    return aStatus
+  }
+})
+
+async function attachQuote(file: any) {
+  if (qStatus)
+    await attachQuoteToDraft(file, publishWidget, qStatus)
+
+  else
+    console.error('There is no status to quote')
+}
 
 function detachQuote() {
   return publishWidget.value?.detachQuoteFromDraft()
 }
 
-provide('detach-quote', detachQuote)
+const isBeingQuoted = ref<boolean>(false)
+
+const isQuotableStatus = $computed(() => isQuotable(qStatus))
+
+async function toggleQuote<T extends Node>(quotableElement: T) {
+  if (!isBeingQuoted.value) {
+    if (quotableElement) {
+      const colorMode = useColorMode()
+      const quoteBackgroundColor = (colorMode.value === 'dark') ? '#1a202c' : '#fafafa'
+      const canvasWithQuote = await domToCanvas(quotableElement, {
+        backgroundColor: quoteBackgroundColor,
+        scale: 1.0,
+        font: {
+          preferredFormat: 'woff',
+        },
+      })
+      canvasWithQuote.toBlob(async (blob: Blob | null) => {
+        if (blob)
+          await attachQuote(blob)
+        else
+          console.error('NO BLOB!')
+      })
+      isBeingQuoted.value = !isBeingQuoted.value
+    }
+  }
+  else {
+    detachQuote()
+    isBeingQuoted.value = !isBeingQuoted.value
+  }
+}
+
+function updateQuotableElement<T extends Node>(el?: T) {
+  if (main.value && window.history.state.quote && isQuotableStatus && !isBeingQuoted.value && el) {
+    publishWidget.value?.focusEditor?.()
+    return toggleQuote(el)
+  }
+}
+
+provide('update-quotable-element', updateQuotableElement)
 
 watch(publishWidget, () => {
   if (window.history.state.focusReply)
     focusEditor()
 })
-
-const replyDraft = $computed(() => status.value ? getReplyDraft(status.value) : null)
 
 onReactivated(() => {
   // Silently update data when reentering the page
@@ -102,6 +138,8 @@ onReactivated(() => {
               v-for="comment, i of context?.ancestors" :key="comment.id"
               :status="comment" :actions="comment.visibility !== 'direct'" context="account"
               :has-older="true" :newer="context?.ancestors[i - 1]"
+              :is-being-quoted="isBeingQuoted"
+              :toggle-quote="toggleQuote"
             />
           </template>
 
@@ -110,6 +148,8 @@ onReactivated(() => {
             :status="status"
             :newer="context?.ancestors.at(-1)"
             :reply-draft="replyDraft?.draft"
+            :is-being-quoted="isBeingQuoted"
+            :toggle-quote="toggleQuote"
             command
             style="scroll-margin-top: 60px"
             @refetch-status="refreshStatus()"
@@ -140,6 +180,8 @@ onReactivated(() => {
                   :newer="index > 0 ? context?.descendants[index - 1] : status"
                   :has-newer="index === 0"
                   :main="status"
+                  :is-being-quoted="isBeingQuoted"
+                  :toggle-quote="toggleQuote"
                 />
               </DynamicScrollerItem>
             </DynamicScroller>

@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
-import { ref } from 'vue'
+import { inject, ref } from 'vue'
+import { explainIsQuotable, isQuotable } from '../../composables/quote'
 
 const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
   newer?: mastodon.v1.Status
   command?: boolean
   actions?: boolean
+  isBeingQuoted?: boolean
+  toggleQuote?: <T extends Node>(quotableElement: T) => Promise<void>
 }>(), {
   actions: true,
+  triggerQuote: false,
 })
 
 defineEmits<{
@@ -29,7 +33,26 @@ useHydratedHead({
   title: () => `${getDisplayName(status.account)} ${t('common.in')} ${t('app_name')}: "${removeHTMLTags(status.content) || ''}"`,
 })
 
-const quotableElement = ref<any>(null)
+const isQuotableStatus = $computed(() => isQuotable(status))
+
+const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
+
+const quotableElement = ref<Node>()
+
+const focusEditor = inject<typeof noop>('focus-editor', noop)
+async function toggleQuote() {
+  if (props.toggleQuote && quotableElement.value) {
+    focusEditor()
+    await props.toggleQuote(quotableElement.value)
+  }
+}
+
+const updateQuotableElement = inject<<T extends Node>(el?: T) => void>('update-quotable-element', noop)
+watch(quotableElement, () => {
+  updateQuotableElement(quotableElement.value)
+},
+{ immediate: false },
+)
 </script>
 
 <template>
@@ -68,7 +91,16 @@ const quotableElement = ref<any>(null)
       </div>
     </div>
     <div border="t base" py-2>
-      <StatusActions v-if="actions" :status="status" details :command="command" :quotable-element="quotableElement" />
+      <StatusActions
+        v-if="actions"
+        :status="status"
+        details
+        :command="command"
+        :is-quotable-status="isQuotableStatus"
+        :explain-is-quotable-status="explainIsQuotableStatus"
+        :is-being-quoted="props.isBeingQuoted"
+        :toggle-quote="toggleQuote"
+      />
     </div>
   </div>
 </template>

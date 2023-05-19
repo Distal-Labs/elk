@@ -68,12 +68,13 @@ export function getStatusInReplyToRoute(status: mastodon.v1.Status) {
   })
 }
 
-export function navigateToStatus({ status, focusReply = false }: {
+export function navigateToStatus({ status, focusReply = false, quote = false }: {
   status: mastodon.v1.Status
   focusReply?: boolean
+  quote?: boolean
 }) {
   return navigateTo({
     path: getStatusRoute(status).href,
-    state: { focusReply },
+    state: { focusReply, quote },
   })
 }

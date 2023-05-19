@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
+import { inject, ref } from 'vue'
+import { explainIsQuotable, isQuotable } from '../../composables/quote'
 
 const props = withDefaults(
   defineProps<{
@@ -20,9 +22,12 @@ const props = withDefaults(
     // When looking into a detailed view of a post, we can simplify the replying badges
     // to the main expanded post
     main?: mastodon.v1.Status
+    isBeingQuoted?: boolean
+    toggleQuote?: <T extends Node>(quotableElement: T) => Promise<void>
   }>(),
-  { actions: true },
-)
+  {
+    actions: true,
+  })
 
 const userSettings = useUserSettings()
 
@@ -31,6 +36,9 @@ const status = $computed(() => {
     return props.status.reblog
   return props.status
 })
+
+const isQuotableStatus = $computed(() => isQuotable(status))
+const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
 
 // Use original status, avoid connecting a reblog
 const directReply = $computed(() => props.hasNewer || (!!status.inReplyToId && (status.inReplyToId === props.newer?.id || status.inReplyToId === props.newer?.reblog?.id)))
@@ -67,6 +75,15 @@ const showUpperBorder = $computed(() => props.newer && !directReply)
 const showReplyTo = $computed(() => !replyToMain && !directReply)
 
 const forceShow = ref(false)
+
+const focusEditor = inject<typeof noop>('focus-editor', noop)
+const quotableElement = ref<Node>()
+async function toggleQuote() {
+  if (props.toggleQuote && quotableElement.value) {
+    focusEditor()
+    props.toggleQuote(quotableElement.value)
+  }
+}
 </script>
 
 <template>
@@ -148,41 +165,51 @@ const forceShow = ref(false)
 
         <!-- Main -->
         <div flex="~ col 1" min-w-0>
-          <!-- Account Info -->
-          <div flex items-center space-x-1>
-            <AccountHoverWrapper :account="status.account">
-              <StatusAccountDetails :account="status.account" />
-            </AccountHoverWrapper>
-            <div flex-auto />
-            <div v-show="!getPreferences(userSettings, 'zenMode')" text-sm text-secondary flex="~ row nowrap" hover:underline whitespace-nowrap>
-              <AccountBotIndicator v-if="status.account.bot" me-2 />
-              <div flex="~ gap1" items-center>
-                <StatusVisibilityIndicator v-if="status.visibility !== 'public'" :status="status" />
-                <div flex>
-                  <CommonTooltip :content="createdAt">
-                    <NuxtLink :title="status.createdAt" :href="statusRoute.href" @click.prevent="go($event)">
-                      <time text-sm ws-nowrap hover:underline :datetime="status.createdAt">
-                        {{ timeago }}
-                      </time>
-                    </NuxtLink>
-                  </CommonTooltip>
-                  <StatusEditIndicator :status="status" inline />
+          <div ref="quotableElement" style="padding: 2rem;">
+            <!-- Account Info -->
+            <div flex items-center space-x-1>
+              <AccountHoverWrapper :account="status.account">
+                <StatusAccountDetails :account="status.account" />
+              </AccountHoverWrapper>
+              <div flex-auto />
+              <div v-show="!getPreferences(userSettings, 'zenMode')" text-sm text-secondary flex="~ row nowrap" hover:underline whitespace-nowrap>
+                <AccountBotIndicator v-if="status.account.bot" me-2 />
+                <div flex="~ gap1" items-center>
+                  <StatusVisibilityIndicator v-if="status.visibility !== 'public'" :status="status" />
+                  <div flex>
+                    <CommonTooltip :content="createdAt">
+                      <NuxtLink :title="status.createdAt" :href="statusRoute.href" @click.prevent="go($event)">
+                        <time text-sm ws-nowrap hover:underline :datetime="status.createdAt">
+                          {{ timeago }}
+                        </time>
+                      </NuxtLink>
+                    </CommonTooltip>
+                    <StatusEditIndicator :status="status" inline />
+                  </div>
                 </div>
               </div>
+              <StatusActionsMore v-if="actions !== false" :status="status" me--2 />
             </div>
-            <StatusActionsMore v-if="actions !== false" :status="status" me--2 />
-          </div>
 
-          <!-- Content -->
-          <StatusContent
+            <!-- Content -->
+            <StatusContent
+              :status="status"
+              :newer="newer"
+              :context="context"
+              :is-preview="isPreview"
+              :in-notification="inNotification"
+              mb2 :class="{ 'mt-2 mb1': isDM }"
+            />
+          </div>
+          <StatusActions
+            v-if="actions !== false"
+            v-show="!getPreferences(userSettings, 'zenMode')"
             :status="status"
-            :newer="newer"
-            :context="context"
-            :is-preview="isPreview"
-            :in-notification="inNotification"
-            mb2 :class="{ 'mt-2 mb1': isDM }"
+            :is-quotable-status="isQuotableStatus"
+            :explain-is-quotable-status="explainIsQuotableStatus"
+            :is-being-quoted="props.isBeingQuoted"
+            :toggle-quote="toggleQuote"
           />
-          <StatusActions v-if="actions !== false" v-show="!getPreferences(userSettings, 'zenMode')" :status="status" />
         </div>
       </template>
     </div>
