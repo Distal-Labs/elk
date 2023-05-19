@@ -1057,22 +1057,26 @@ function cloneElement<T extends HTMLElement | SVGElement>(
   //   return cloneIframe(node, context)
   // }
 
-  if (isImageElement(node))
-    return cloneImage(node)
-
-  if (isVideoElement(node))
-    return cloneVideo(node)
-
-  // if (isSVGSVGElementNode(node)) {
-  //   return cloneSvg(node, context)
-  // }
   ////////////////////////////////////////
-  node.removeAttribute('focus:outline-none')
-  node.removeAttribute('focus:ring')
-  node.removeAttribute('hover:bg-active')
-  node.removeAttribute('sm:break-words')
-  node.removeAttribute('sm:font-medium')
-  node.removeAttribute('data-v-inspector')
+  for (const attr of node.attributes) {
+    if (attr.localName.includes(':'))
+      node.removeAttribute(attr.localName)
+
+    if (attr.name.includes(':')) {
+      // console.debug(attr.name)
+      node.removeAttribute(attr.name)
+    }
+  }
+
+  const otherAttributesToRemove = ['data-v-inspector', 'xl:mt-4', 'sm:font-medium', 'sm:break-words', 'hover:bg-active', 'focus:ring', 'focus:outline-none']
+  for (const attrName of otherAttributesToRemove) {
+    try {
+      node.removeAttribute(attrName)
+    }
+    catch (e) {
+      consoleWarn((e as Error).message)
+    }
+  }
 
   // console.log(node)
 
@@ -1088,6 +1092,17 @@ function cloneElement<T extends HTMLElement | SVGElement>(
   //   return link
   // }
   ////////////////////////////////////
+
+  if (isImageElement(node))
+    return cloneImage(node)
+
+  if (isVideoElement(node))
+    return cloneVideo(node)
+
+  // if (isSVGSVGElementNode(node)) {
+  //   return cloneSvg(node, context)
+  // }
+
   return node.cloneNode(false) as T
 }
 
