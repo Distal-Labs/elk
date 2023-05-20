@@ -338,6 +338,8 @@ async function loadMedia(media: any, options?: LoadMediaOptions): Promise<any> {
 
       const onLoad = async () => {
         if (isImageElement(node) && 'decode' in node) {
+          if (currentSrc === 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
+            return onResolve()
           try {
             await node.decode()
           }
@@ -494,8 +496,16 @@ function shouldNodeBeIncluded(el: Element): boolean {
   if ((el) && (['#text', '#comment', 'IFRAME'].includes(el.nodeName) === false)) {
     // el.removeAttribute('data-v-inspector')
     // el.removeAttribute('class')
-    // console.log(el)
-    return (el.getAttribute('src')?.includes('data:image/svg+xml') !== true)
+    const isSVG = (el.getAttribute('src')?.includes('data:image/svg+xml') === true)
+    if (isSVG)
+      return false
+
+    // const isAvatarPlaceholder = (el.getAttribute('src')?.includes('R0lGODlhAQABAIAAAAAAAP') === true)
+    // // if (isAvatarPlaceholder) return false;
+    // return !isAvatarPlaceholder
+
+    // const isBlurhash = (el.getAttribute('src')?.includes('64,iVBOR') === true)
+    // return !isBlurhash;
   }
 
   return true
