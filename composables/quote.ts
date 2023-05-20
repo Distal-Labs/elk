@@ -115,6 +115,7 @@ const isHTMLElementNode = (node: Node): node is HTMLElement => isElementNode(nod
 const isCommentNode = (node: Node): node is Text => node.nodeType === 8 // Node.COMMENT_NODE
 const isTextNode = (node: Node): node is Text => node.nodeType === 3 // Node.TEXT_NODE
 const isImageElement = (node: Element): node is HTMLImageElement => node.tagName === 'IMG'
+const isCanvasElement = (node: Element): node is HTMLCanvasElement => node.tagName === 'CANVAS'
 const isVideoElement = (node: Element): node is HTMLVideoElement => node.tagName === 'VIDEO'
 const isStyleElement = (node: Element): node is HTMLStyleElement => node.tagName === 'STYLE'
 const isScriptElement = (node: Element): node is HTMLScriptElement => node.tagName === 'SCRIPT'
@@ -691,7 +692,7 @@ async function cloneNode<T extends Node>(
     && isElementNode(node)
     && (isHTMLElementNode(node) || isSVGElementNode(node))
   ) {
-    const cloned = await cloneElement(node, context)
+    const cloned = await cloneElement(node)
 
     // fix abnormal attribute
     cloned.removeAttribute('"')
@@ -1070,16 +1071,12 @@ function cloneCanvas<T extends HTMLCanvasElement>(
 async function cloneVideo<T extends HTMLVideoElement>(
   video: T,
 ): Promise<HTMLCanvasElement | HTMLImageElement | HTMLVideoElement> {
-  if (
-    video.ownerDocument
-    && !video.currentSrc
-    && video.poster
-  )
+  if (video.ownerDocument && video.poster)
     return createImage(video.poster, video.ownerDocument)
 
   const cloned = video.cloneNode(false) as T
   cloned.crossOrigin = 'anonymous'
-  if (video.currentSrc && video.currentSrc !== video.src)
+  if (video.currentSrc && (video.currentSrc !== video.src))
     cloned.src = video.currentSrc
 
   // video to canvas
@@ -1124,14 +1121,6 @@ function cloneElement<T extends HTMLElement | SVGElement>(
   node: T,
   // context: Context,
 ): (HTMLElement | SVGElement) | Promise<HTMLElement | SVGElement> {
-  // if (isCanvasElement(node)) {
-  //   return cloneCanvas(node)
-  // }
-
-  // if (isIFrameElement(node)) {
-  //   return cloneIframe(node, context)
-  // }
-
   ////////////////////////////////////////
   for (const attr of node.attributes) {
     if (attr.localName.includes(':'))
@@ -1152,8 +1141,12 @@ function cloneElement<T extends HTMLElement | SVGElement>(
       consoleWarn((e as Error).message)
     }
   }
+  if (isCanvasElement(node))
+    return cloneCanvas(node)
 
-  // console.log(node)
+  // if (isIFrameElement(node)) {
+  //   return cloneIframe(node, context)
+  // }
 
   // if (node.getAttribute('src')?.includes('svg')) {
   //   console.log(node.getAttribute('src')?.includes('svg'))
@@ -1168,11 +1161,11 @@ function cloneElement<T extends HTMLElement | SVGElement>(
   // }
   ////////////////////////////////////
 
-  if (isImageElement(node))
-    return cloneImage(node)
-
   if (isVideoElement(node))
     return cloneVideo(node)
+
+  if (isImageElement(node))
+    return cloneImage(node)
 
   // if (isSVGSVGElementNode(node)) {
   //   return cloneSvg(node, context)

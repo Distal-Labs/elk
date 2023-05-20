@@ -186,7 +186,7 @@ export function useUploadMediaAttachment(draftRef: Ref<Draft>) {
       if (draft.attachments.length < limit) {
         isExceedingAttachmentLimit = false
         try {
-          const attachment = await client.v1.mediaAttachments.create({
+          const attachment = await client.v2.mediaAttachments.create({
             file: await processFile(file),
           })
           draft.attachments.push(attachment)
