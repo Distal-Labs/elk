@@ -54,8 +54,8 @@ export function isQuotable(quotedStatus?: mastodon.v1.Status): boolean {
           && ((quotedStatus.inReplyToAccountId === null) || (quotedStatus.inReplyToAccountId === currentUser.value?.account.id))
         )
       )) && (
-        ((quotedStatus.account.discoverable === true) || (quotedStatus.account.discoverable === null))
-        && ((quotedStatus.account.locked === false) || (quotedStatus.account.locked === null))
+        // ((quotedStatus.account.discoverable === true) || (quotedStatus.account.discoverable === null)) &&
+        ((quotedStatus.account.locked === false) || (quotedStatus.account.locked === null))
         && (quotedStatus.account.note.toLowerCase().search(/(#?no ?qts?)|(#?no ?quotes?)|(#?no ?quoting?)/gi) === -1)
       ))
   }
