@@ -49,7 +49,9 @@ async function toggleQuote() {
 
 const updateQuotableElement = inject<<T extends Node>(el?: T) => void>('update-quotable-element', noop)
 watch(quotableElement, () => {
-  updateQuotableElement(quotableElement.value)
+  setTimeout(() => {
+    updateQuotableElement(quotableElement.value)
+  }, 2000)
 },
 { immediate: false },
 )
