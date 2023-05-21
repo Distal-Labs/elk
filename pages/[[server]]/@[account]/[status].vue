@@ -4,7 +4,7 @@ import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
 import type { ComponentPublicInstance } from 'vue'
 import type { mastodon } from 'masto'
 import { provide, ref } from 'vue'
-import { attachQuoteToDraft, domToCanvas, isQuotable } from '../../../composables/quote'
+import { attachQuoteImageToDraft, domToCanvas, isQuotable } from '../../../composables/quote'
 
 definePageMeta({
   name: 'status',
@@ -63,24 +63,30 @@ const qStatus = $computed(() => {
   }
 })
 
-async function attachQuote(file: any) {
-  if (qStatus)
-    await attachQuoteToDraft(file, publishWidget, qStatus)
-
-  else
-    console.error('There is no status to quote')
-}
-
-function detachQuote() {
-  return publishWidget.value?.detachQuoteFromDraft()
+async function attachQuote(file: any): Promise<boolean> {
+  if (qStatus) {
+    const didAttachOperationSucceed: boolean = await attachQuoteImageToDraft(file, publishWidget, qStatus)
+    return didAttachOperationSucceed
+  }
+  else {
+    return false
+  }
 }
 
 const isBeingQuoted = ref<boolean>(false)
+function quoteRemoved() {
+  isBeingQuoted.value = false
+}
+
+function detachQuote() {
+  publishWidget.value?.detachQuoteFromDraft()
+  isBeingQuoted.value = false
+}
 
 const isQuotableStatus = $computed(() => isQuotable(qStatus))
 
 async function toggleQuote<T extends Node>(quotableElement: T) {
-  if (!isBeingQuoted.value) {
+  if (isBeingQuoted.value === false) {
     if (quotableElement) {
       const colorMode = useColorMode()
       const quoteBackgroundColor = (colorMode.value === 'dark') ? '#1a202c' : '#fafafa'
@@ -92,17 +98,18 @@ async function toggleQuote<T extends Node>(quotableElement: T) {
         },
       })
       canvasWithQuote.toBlob(async (blob: Blob | null) => {
-        if (blob)
-          await attachQuote(blob)
-        else
-          console.error('NO BLOB!')
+        if (blob) {
+          isBeingQuoted.value = true
+          isBeingQuoted.value = await attachQuote(blob)
+        }
+        else {
+          isBeingQuoted.value = false
+        }
       })
-      isBeingQuoted.value = !isBeingQuoted.value
     }
   }
   else {
     detachQuote()
-    isBeingQuoted.value = !isBeingQuoted.value
   }
 }
 
@@ -160,6 +167,7 @@ onReactivated(() => {
             border="y base"
             :draft-key="replyDraft!.key"
             :initial="replyDraft!.draft"
+            :quote-removed="quoteRemoved"
             @published="refreshContext()"
           />
 

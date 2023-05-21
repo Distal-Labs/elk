@@ -30,7 +30,7 @@ import type { mastodon } from 'masto'
   SOFTWARE.
 */
 
-export async function attachQuoteToDraft(file: any, publishWidget: Ref<any>, quotedStatus: mastodon.v1.Status): Promise<void> {
+export async function attachQuoteImageToDraft(file: any, publishWidget: Ref<any>, quotedStatus: mastodon.v1.Status): Promise<boolean> {
   const parseContent = (content: string) => {
     const noP = content.replaceAll(/<p[^>]*>/ig, ' ').replaceAll(/<.p[^>]*>/ig, ' ')
     const noSpan = noP.replaceAll(/<span[^>]*>/ig, ' ').replaceAll(/<.span[^>]*>/ig, ' ')
@@ -39,7 +39,8 @@ export async function attachQuoteToDraft(file: any, publishWidget: Ref<any>, quo
     return noBr.replaceAll(/ {2,}/ig, ' ').replaceAll(/[#] /g, '#').replaceAll(/[@] /g, '@').trim() // .replace('" ', '"').replace(/ ["]$/, '"')
   }
   const altTextInitialValue = `Quoting @${quotedStatus.account.acct}:\n\n${quotedStatus.text ?? parseContent(quotedStatus.content)}\n\nThe original post is available at ${quotedStatus.uri}`
-  return await publishWidget.value?.attachQuoteToDraft(file, altTextInitialValue)
+  const didAttachOperationSucceed: boolean = await publishWidget.value?.attachQuoteToDraft(file, altTextInitialValue, quotedStatus.uri)
+  return didAttachOperationSucceed
 }
 
 export function isQuotable(quotedStatus?: mastodon.v1.Status): boolean {

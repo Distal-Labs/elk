@@ -7,12 +7,14 @@ import type { Draft } from '~/types'
 const {
   draftKey,
   initial = getDefaultDraft,
+  quoteRemoved,
   expanded = false,
   placeholder,
   dialogLabelledBy,
 } = defineProps<{
   draftKey?: string
   initial?: () => Draft
+  quoteRemoved?: () => void
   placeholder?: string
   inReplyToId?: string
   inReplyToVisibility?: mastodon.v1.StatusVisibility
@@ -148,25 +150,57 @@ useWebShareTarget(async ({ data: { data, action } }: any) => {
     await uploadAttachments(data.files)
 })
 
+function removeQuoteOrOtherAttachment(idx: number) {
+  const maxIndex = draft.attachments.length - 1
+  if ((maxIndex > -1) && (idx <= maxIndex))
+    removeAttachment(idx)
+
+  if ((draft.quoteIndex !== undefined) && (draft.quoteIndex === idx)) {
+    const newHTML = editor.value?.getHTML()?.replace(/(([<]br[>])|([<]p[>](&nbsp.?)*[<][/]p[>]))*[<]p[>]http[^ ]+status[^<]+[<][/]p[>]/ig, '')?.trim() ?? ''
+    editor.value?.commands?.clearContent()
+    editor.value?.view?.pasteHTML?.(newHTML)
+    editor.value?.commands?.focus()
+    editor.value?.commands?.selectTextblockEnd()
+    draft.quoteIndex = undefined
+    if (quoteRemoved)
+      quoteRemoved()
+  }
+}
+
 defineExpose({
   focusEditor: () => {
     editor.value?.commands?.focus?.()
   },
-  attachQuoteToDraft: async (file: any, description: string) => {
-    const countStart = draft.attachments.length
-    await uploadAttachments([file])
-    const countFinish = draft.attachments.length
-    if (countFinish > countStart) {
-      draft.quoteIndex = countFinish - 1
-      await setDescription(draft.attachments[draft.quoteIndex], description)
+  attachQuoteToDraft: async (file: any, description: string, quotedStatusURI: string): Promise<boolean> => {
+    try {
+      const countStart = draft.attachments.length
+      await uploadAttachments([file])
+      const countFinish = draft.attachments.length
+      if (countFinish > countStart) {
+        draft.quoteIndex = countFinish - 1
+        await setDescription(draft.attachments[draft.quoteIndex], description)
+        const isQuotedURIPresent = editor.value?.getText()?.includes(quotedStatusURI) ?? false
+
+        if (!isQuotedURIPresent) {
+          const newHTML = `${(editor.value?.getHTML() ?? '').trim()}<p>&nbsp;</p><p>${quotedStatusURI}</p>`
+          editor.value?.commands?.clearContent()
+          editor.value?.view?.pasteHTML(newHTML)
+          editor.value?.commands?.focus()
+          editor.value?.commands?.selectTextblockEnd()
+        }
+        return true
+      }
+      else {
+        return false
+      }
+    }
+    catch (e) {
+      console.error(e as Error)
+      return false
     }
   },
   detachQuoteFromDraft: () => {
-    if (
-      (draft.quoteIndex !== undefined)
-      && ((draft.attachments.length - 1) >= draft.quoteIndex)
-    )
-      return removeAttachment(draft.quoteIndex)
+    removeQuoteOrOtherAttachment(draft.quoteIndex ?? 0)
   },
 })
 
@@ -285,7 +319,7 @@ onDeactivated(() => {
             v-for="(att, idx) in draft.attachments" :key="att.id"
             :attachment="att"
             :dialog-labelled-by="dialogLabelledBy ?? (draft.editingStatus ? 'state-editing' : undefined)"
-            @remove="removeAttachment(idx)"
+            @remove="removeQuoteOrOtherAttachment(idx)"
             @set-description="setDescription(att, $event)"
           />
         </div>
