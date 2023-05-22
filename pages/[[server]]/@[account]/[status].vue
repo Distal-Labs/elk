@@ -89,9 +89,18 @@ async function toggleQuote<T extends Node>(quotableElement: T) {
   if (isBeingQuoted.value === false) {
     if (quotableElement) {
       const colorMode = useColorMode()
-      const quoteBackgroundColor = (colorMode.value === 'dark') ? '#1a202c' : '#fafafa'
+      const quoteBackgroundColor = computed(() => {
+        switch (colorMode.value) {
+          case 'light':
+            return '#fafafa'
+          case 'dim':
+            return '#1a202c'
+          case 'dark':
+            return '#111111'
+        }
+      })
       const canvasWithQuote = await domToCanvas(quotableElement, {
-        backgroundColor: quoteBackgroundColor,
+        backgroundColor: quoteBackgroundColor.value,
         scale: 1.0,
         font: {
           preferredFormat: 'woff',
