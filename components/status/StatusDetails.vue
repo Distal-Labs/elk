@@ -51,7 +51,7 @@ const updateQuotableElement = inject<<T extends Node>(el?: T) => void>('update-q
 watch(quotableElement, () => {
   setTimeout(() => {
     updateQuotableElement(quotableElement.value)
-  }, 1500)
+  }, 2000)
 },
 { immediate: false },
 )
