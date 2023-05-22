@@ -332,6 +332,7 @@
       "color_mode": "Motyw",
       "dark_mode": "Ciemny",
       "default": " (domyślna)",
+      "dim_mode": "Tryb atenuowany",
       "font_size": "Rozmiar czcionki",
       "label": "Wygląd",
       "light_mode": "Jasny",
