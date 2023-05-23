@@ -65,8 +65,7 @@ if (status.card && linkToStatus)
 
 const expandLinkedStatus = computed(() => {
   if (linkedStatus.value)
-    return linkedStatus.value.visibility === 'public'
-
+    return ['public', 'unlisted'].includes(linkedStatus.value.visibility)
   return false
 })
 
