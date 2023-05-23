@@ -65,7 +65,7 @@ onBeforeUnmount(() => {
         v-show="modelValue"
         absolute inset-x-0 top-auto bottom-full z-20 h-100vh
         flex items-end of-y-scroll of-x-hidden scrollbar-hide overscroll-none
-        bg="black/50"
+        bg="bg-active/50"
       >
         <!-- The style `scrollbar-hide overscroll-none overflow-y-scroll mb="-1px"` and `h="[calc(100%+0.5px)]"` is used to implement scroll locking, -->
         <!-- corresponding to issue: #106, so please don't remove it. -->
@@ -74,14 +74,14 @@ onBeforeUnmount(() => {
 
           flex-1 min-w-48 py-6 mb="-1px"
           of-y-auto scrollbar-hide overscroll-none max-h="[calc(100vh-200px)]"
-          rounded-t-lg bg="white/85 dark:neutral-900/85" backdrop-filter backdrop-blur-md
+          rounded-t-lg backdrop-filter backdrop-blur-3xl
           border-t-1 border-base
         >
           <!-- Nav -->
           <NavSide />
 
           <!-- Divider line -->
-          <div border="neutral-300 dark:neutral-700 t-1" m="x-3 y-2" />
+          <div border="neutral-700 t-1" m="x-3 y-2" />
 
           <!-- Function menu -->
           <div flex="~ col gap2">
@@ -91,7 +91,7 @@ onBeforeUnmount(() => {
               block px-5 py-2 focus-blue w-full
               text-sm text-base capitalize text-left whitespace-nowrap
               transition-colors duration-200 transform
-              hover="bg-gray-100 dark:(bg-gray-700 text-white)"
+              hover="bg-gray-700 text-white"
               @click="colorModeToggle()"
             >
               <span v-if="colorMode.value === 'light'" class="i-ri:moon-foggy-line flex-shrink-0 text-xl me-4 !align-middle" />
@@ -106,7 +106,7 @@ onBeforeUnmount(() => {
               block px-5 py-2 focus-blue w-full
               text-sm text-base capitalize text-left whitespace-nowrap
               transition-colors duration-200 transform
-              hover="bg-gray-100 dark:(bg-gray-700 text-white)"
+              hover="bg-gray-700 text-white"
               :aria-label="$t('nav.zen_mode')"
               @click="togglePreferences('zenMode')"
             >
