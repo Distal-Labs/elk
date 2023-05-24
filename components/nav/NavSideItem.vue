@@ -56,10 +56,10 @@ const noUserVisual = computed(() => isHydrated.value && props.userOnly && !curre
     <CommonTooltip :disabled="!isMediumOrLargeScreen" :content="text" placement="right">
       <div
         class="item"
-        flex items-center gap4
+        flex sm:justify-evenly gap4
         w-content rounded-3
         px2 mx3 sm:mxa
-        xl="ml0 mr5 px5 w-auto"
+        xl="items-center justify-start ml0 mr5 px5 w-auto"
         transition-100
         elk-group-hover="bg-active" group-focus-visible:ring="2 current"
       >

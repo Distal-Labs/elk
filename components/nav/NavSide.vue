@@ -7,11 +7,11 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 </script>
 
 <template>
-  <nav sm:px3 flex="~ col gap2" shrink text-size-base leading-normal md:text-lg h-full mt-1 overflow-y-auto>
-    <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" xl:hidden :command="command" />
-
-    <div class="spacer" shrink xl:hidden />
+  <nav sm:px3 flex="~ col gap2" shrink text-size-base leading-normal md:text-lg h-full my-1 place-content-evenly xl:place-content-start overflow-y-auto>
+    <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" lg:hidden :command="command" />
+    <div class="spacer" shrink lg:hidden />
     <NavSideItem :text="$t('nav.home')" to="/home" icon="i-ri:home-5-line" user-only :command="command" />
+    <!-- <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only lg:hidden :command="command"> -->
     <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only :command="command">
       <template #icon>
         <div flex relative>
