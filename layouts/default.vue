@@ -2,6 +2,7 @@
 import { usePreferences } from '~/composables/settings'
 
 const route = useRoute()
+const info = useBuildInfo()
 
 const wideLayout = computed(() => route.meta.wideLayout ?? false)
 
@@ -62,6 +63,11 @@ const isGrayscale = usePreferences('grayscaleMode')
         <div sticky top-0 h-100dvh flex="~ col" gap-2 py3 ms-2>
           <slot name="right">
             <DrawerContent />
+            <div flex-auto />
+            <PwaPrompt />
+            <PwaInstallPrompt />
+            <LazyCommonPreviewPrompt v-if="info.env === 'preview'" />
+            <NavFooter border-t-1 border-current />
           </slot>
         </div>
       </aside>

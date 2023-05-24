@@ -1,5 +1,4 @@
 <script setup lang="ts">
-const info = useBuildInfo()
 </script>
 
 <template>
@@ -16,14 +15,9 @@ const info = useBuildInfo()
       scrollbar-hide
       border-t-2
       mx-4 pt-4
+      class="zen-hide"
     >
       <DrawerNotifications v-if="isHydrated && currentUser" />
     </div>
-
-    <div flex-auto />
-    <PwaPrompt />
-    <PwaInstallPrompt />
-    <LazyCommonPreviewPrompt v-if="info.env === 'preview'" />
-    <NavFooter border-t-1 border-current />
   </div>
 </template>
