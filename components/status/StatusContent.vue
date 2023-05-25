@@ -94,6 +94,7 @@ const hideAllMedia = computed(
 <template>
   <div
     space-y-3
+    my-4
     :class="{
       'pt2 pb0.5 px3.5 bg-dm rounded-4 me--1': isDM,
       'ms--3.5 mt--1 ms--1': isDM && context !== 'details',
@@ -116,18 +117,15 @@ const hideAllMedia = computed(
         :is-preview="isPreview"
       />
       <StatusPreviewCard
-        v-if="status.card && !expandLinkedStatus"
+        v-if="status.card"
+        :status="status"
         :card="status.card"
+        :link-to-status="linkToStatus"
         :small-picture-only="status.mediaAttachments?.length > 0"
       />
       <StatusCard
         v-if="status.reblog && !expandLinkedStatus"
         :status="status.reblog" border="~ rounded"
-        :actions="false"
-      />
-      <StatusCard
-        v-if="expandLinkedStatus && (linkedStatus !== undefined)"
-        :status="linkedStatus" border="~ rounded"
         :actions="false"
       />
       <div v-if="isDM" />

@@ -78,3 +78,12 @@ export interface BuildInfo {
   branch: string
   env: 'preview' | 'canary' | 'dev' | 'release'
 }
+
+export type RecursivePartial<T> = {
+  [P in keyof T]?:
+  T[P] extends (infer U)[] ? RecursivePartial<U>[] :
+    T[P] extends object ? RecursivePartial<T[P]> :
+      T[P];
+}
+
+export type StatusQuote = RecursivePartial<mastodon.v1.Status>
