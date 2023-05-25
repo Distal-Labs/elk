@@ -117,7 +117,7 @@ const hideAllMedia = computed(
         :is-preview="isPreview"
       />
       <StatusPreviewCard
-        v-if="status.card"
+        v-if="status.card && !expandLinkedStatus"
         :status="status"
         :card="status.card"
         :link-to-status="linkToStatus"
@@ -126,6 +126,11 @@ const hideAllMedia = computed(
       <StatusCard
         v-if="status.reblog && !expandLinkedStatus"
         :status="status.reblog" border="~ rounded"
+        :actions="false"
+      />
+      <StatusQuoteCard
+        v-if="expandLinkedStatus && (linkedStatus !== undefined)"
+        :status="linkedStatus"
         :actions="false"
       />
       <div v-if="isDM" />

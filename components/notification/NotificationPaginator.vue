@@ -185,7 +185,6 @@ const { formatNumber } = useHumanReadableNumber()
           <NotificationCard
             v-else
             :notification="item"
-            hover:bg-active
             border="b base"
           />
         </DynamicScrollerItem>
@@ -204,7 +203,6 @@ const { formatNumber } = useHumanReadableNumber()
         <NotificationCard
           v-else
           :notification="item"
-          hover:bg-active
           border="b base"
         />
       </template>
