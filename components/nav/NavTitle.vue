@@ -1,20 +1,26 @@
 <script setup lang="ts">
 const { env } = useBuildInfo()
 const router = useRouter()
-const back = ref<any>('')
-
-const nuxtApp = useNuxtApp()
-
-function onClickLogo() {
-  nuxtApp.hooks.callHook('elk-logo:click')
-}
+const backRef = ref<string>('')
 
 onMounted(() => {
-  back.value = router.options.history.state.back
+  backRef.value = '/'
 })
-router.afterEach(() => {
-  back.value = router.options.history.state.back
+router.afterEach(async (to, from) => {
+  if ((router.currentRoute.value.name === 'home') || (router.currentRoute.value.name === 'index') || (router.currentRoute.value.name === null))
+    backRef.value = ''
+  else
+    backRef.value = router.currentRoute.value.path
 })
+
+async function handleBackClick() {
+  if ((router.options.history.state.back === 'home'))
+    await router.replace('/home')
+  else if ((router.options.history.state.back === 'index') || (router.options.history.state.back === null) || backRef.value === '')
+    await router.replace('/')
+  else
+    router.go(-1)
+}
 </script>
 
 <template>
@@ -25,8 +31,8 @@ router.afterEach(() => {
       text-2xl
       select-none
       focus-visible:ring="2 current"
-      to="/home"
-      @click.prevent="onClickLogo"
+      to="/"
+      external
     >
       <NavLogo shrink-0 aspect="1/1" sm:h-8 xl:h-10 class="rtl-flip" />
       <div v-show="isHydrated" hidden xl:block text-secondary>
@@ -39,8 +45,8 @@ router.afterEach(() => {
       <CommonTooltip :content="$t('nav.back')">
         <NuxtLink
           :aria-label="$t('nav.back')"
-          :class="{ 'pointer-events-none op0': !back || back === '/', 'xl:flex': $route.name !== 'tag' }"
-          @click="$router.go(-1)"
+          :class="{ 'pointer-events-none op0': !backRef || backRef === '', 'xl:flex': $route.name !== 'tag' }"
+          @click="handleBackClick"
         >
           <div text-xl i-ri:arrow-left-line class="rtl-flip" btn-text />
         </NuxtLink>
