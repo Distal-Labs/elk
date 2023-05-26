@@ -5,8 +5,10 @@ const props = withDefaults(defineProps<{
   to: string | Record<string, string>
   userOnly?: boolean
   command?: boolean
+  replace?: boolean
 }>(), {
   userOnly: false,
+  replace: false,
 })
 
 defineSlots<{
@@ -51,6 +53,7 @@ const noUserVisual = computed(() => isHydrated.value && props.userOnly && !curre
     :active-class="activeClass"
     group focus:outline-none disabled:pointer-events-none
     :tabindex="noUserDisable ? -1 : null"
+    :replace="props.replace"
     @click="$scrollToTop"
   >
     <CommonTooltip :disabled="!isMediumOrLargeScreen" :content="text" placement="right">

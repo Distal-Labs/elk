@@ -1,13 +1,18 @@
 <script setup lang="ts">
+import { ROUTES_THAT_SWITCH_USER_CONTEXT } from '~/constants'
+
 const { env } = useBuildInfo()
 const router = useRouter()
 const backRef = ref<string>('')
 
 onMounted(() => {
-  backRef.value = '/'
+  backRef.value = ''
 })
+
 router.afterEach(async (to, from) => {
-  if ((router.currentRoute.value.name === 'home') || (router.currentRoute.value.name === 'index') || (router.currentRoute.value.name === null))
+  if (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(to.name as string) && (to.name !== from.name))
+    backRef.value = ''
+  else if ((currentUser.value !== undefined) && ((router.currentRoute.value.name === 'home') || (router.currentRoute.value.name === 'index') || (router.currentRoute.value.name === null)))
     backRef.value = ''
   else
     backRef.value = router.currentRoute.value.path
@@ -17,6 +22,8 @@ async function handleBackClick() {
   if ((router.options.history.state.back === 'home'))
     await router.replace('/home')
   else if ((router.options.history.state.back === 'index') || (router.options.history.state.back === null) || backRef.value === '')
+    await router.replace('/')
+  else if ((currentUser.value !== undefined) && (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(router.currentRoute.value.name as string)))
     await router.replace('/')
   else
     router.go(-1)

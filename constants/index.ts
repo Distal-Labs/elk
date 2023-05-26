@@ -22,3 +22,5 @@ export const STORAGE_KEY_NOTIFICATION_POLICY = 'elk-notification-policy'
 export const STORAGE_KEY_PWA_HIDE_INSTALL = 'elk-pwa-hide-install'
 
 export const HANDLED_MASTO_URLS = /^(https?:\/\/)?([\w\d-]+\.)+\w+\/(@[@\w\d-\.]+)(\/objects)?(\/\d+)?$/
+
+export const ROUTES_THAT_SWITCH_USER_CONTEXT: string[] = ['server-local', 'server-public', 'server-public-local', 'server-explore', 'server-explore-tags', 'server-explore-links', 'server-explore-users', 'server-lists', 'server-search', 'notifications', 'conversations', 'favourites', 'bookmarks', 'settings']

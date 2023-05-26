@@ -1,12 +1,17 @@
 <script setup lang="ts">
-defineProps<{
+import { ROUTES_THAT_SWITCH_USER_CONTEXT } from '~/constants'
+
+withDefaults(defineProps<{
   /** Show the back button on small screens */
   backOnSmallScreen?: boolean
   /** Show the back button on both small and big screens */
   back?: boolean
   /** Do not applying overflow hidden to let use floatable components in title */
   noOverflowHidden?: boolean
-}>()
+}>(), {
+  backOnSmallScreen: true,
+  back: false,
+})
 
 const container = ref()
 const route = useRoute()
@@ -21,6 +26,17 @@ const containerClass = computed(() => {
 
   return 'lg:sticky lg:top-0'
 })
+const router = useRouter()
+async function handleBackClick() {
+  if ((router.options.history.state.back === 'home'))
+    await router.replace('/home')
+  else if ((router.options.history.state.back === 'index') || (router.options.history.state.back === null))
+    await router.replace('/')
+  else if ((currentUser.value !== undefined) && (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(router.currentRoute.value.name as string)))
+    await router.replace('/')
+  else
+    router.go(-1)
+}
 </script>
 
 <template>
@@ -31,12 +47,12 @@ const containerClass = computed(() => {
       bg="[rgba(var(--rgb-bg-base),0.7)]"
       class="native:lg:w-[calc(100vw-5rem)] native:xl:w-[calc(135%+(100vw-1200px)/2)]"
     >
-      <div flex justify-between px5 py2 :class="{ 'xl:hidden': $route.name !== 'tag' }" class="native:xl:flex" border="b base">
+      <div flex justify-between px5 py2 :class="{ 'xl:hidden': $route.name !== 'tag' }" class="native:lg:flex" border="b base">
         <div flex gap-3 items-center :overflow-hidden="!noOverflowHidden ? '' : false" py2 w-full>
           <NuxtLink
-            v-if="backOnSmallScreen || back" flex="~ gap1" items-center btn-text p-0 xl:hidden
+            v-if="(backOnSmallScreen || back) && ($router.options.history.state!.position as number > 2) && (!['home', ...ROUTES_THAT_SWITCH_USER_CONTEXT].includes($router.currentRoute?.value?.name?.toString() ?? ''))" flex="~ gap1" items-center btn-text p-0 xl:hidden
             :aria-label="$t('nav.back')"
-            @click="$router.go(-1)"
+            @click="handleBackClick"
           >
             <div i-ri:arrow-left-line class="rtl-flip" />
           </NuxtLink>
