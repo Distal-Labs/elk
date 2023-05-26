@@ -132,6 +132,7 @@ const hideAllMedia = computed(
         v-if="expandLinkedStatus && (linkedStatus !== undefined)"
         :status="linkedStatus"
         :actions="false"
+        :in-notification="inNotification"
       />
       <div v-if="isDM" />
     </StatusSpoiler>
