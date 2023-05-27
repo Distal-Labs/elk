@@ -31,7 +31,7 @@ function removeFilteredItems(items: mastodon.v1.Status[], context: mastodon.v1.F
     // Remove Twitter cross-posts
     && (item.content?.toLowerCase()?.includes('twitter.com') !== true)
     // Remove replies
-    && ((item.inReplyToId === null) || (status.inReplyToId === undefined))
+    && ((item.inReplyToId === null) || (item.inReplyToId === undefined))
 
     return [...items].filter(isFiltered).filter(isReblogFiltered).filter(isKeptInFederated)
   }
