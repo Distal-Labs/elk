@@ -31,6 +31,9 @@ router.afterEach(async (to, from) => {
       <NuxtLink to="/home" :aria-label="$t('nav.home')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
         <div i-ri:home-5-line />
       </NuxtLink>
+      <NuxtLink :to="`/${currentServer}/explore`" :aria-label="$t('nav.explore')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
+        <div i-ri:hashtag />
+      </NuxtLink>
       <NuxtLink to="/search" :aria-label="$t('nav.search')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
         <div i-ri:search-line />
       </NuxtLink>
@@ -43,7 +46,7 @@ router.afterEach(async (to, from) => {
         </div>
       </NuxtLink>
       <NuxtLink to="/conversations" :aria-label="$t('nav.conversations')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
-        <div i-ri:at-line />
+        <div i-ri:mail-line />
       </NuxtLink>
     </template>
     <template v-else>
