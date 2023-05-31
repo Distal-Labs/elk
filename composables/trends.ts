@@ -44,9 +44,12 @@ function changeKeysToCamelCase<T>(d: T): T {
   return transformKeys(d, transformCase)
 }
 
-function sortPosts(a: mastodon.v1.Status, b: mastodon.v1.Status, sharedWeight = 3, likeWeight = 2, replyWeight = -0.5) {
+function sortPosts(a: mastodon.v1.Status, b: mastodon.v1.Status, sharedWeight = 3, likeWeight = 2, replyWeight = -0.5, decayWeight = -0.000001) {
   // Penalizing for replies down-ranks ratio'ed posts to avoid mass dunking
-  return ((b.reblogsCount * sharedWeight) + (b.favouritesCount * likeWeight) + (b.repliesCount * replyWeight)) - ((a.reblogsCount * sharedWeight) + (a.favouritesCount * likeWeight) + (a.repliesCount * replyWeight))
+  return (
+    ((b.reblogsCount * sharedWeight) + (b.favouritesCount * likeWeight) + (b.repliesCount * replyWeight) + ((Date.now() - Date.parse(b.createdAt)) * decayWeight))
+    - ((a.reblogsCount * sharedWeight) + (a.favouritesCount * likeWeight) + (a.repliesCount * replyWeight) + ((Date.now() - Date.parse(a.createdAt)) * decayWeight))
+  )
 }
 
 function getTrendingCache(): FedifiedTrends {

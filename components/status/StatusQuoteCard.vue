@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{
   toggleQuote?: <T extends Node>(quotableElement: T) => Promise<void>
 }>(), {
   actions: false,
-  inDrawer: true,
+  inDrawer: false,
   inNotification: false,
 })
 

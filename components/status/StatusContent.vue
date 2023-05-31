@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
 
-const { status, context } = defineProps<{
+const { status, context, inNotification, inDrawer } = defineProps<{
   status: mastodon.v1.Status
   newer?: mastodon.v1.Status
   context?: mastodon.v2.FilterContext | 'details'
   isPreview?: boolean
   inNotification?: boolean
+  inDrawer?: boolean
 }>()
 
 const linkToStatus = $computed(() => {
@@ -132,7 +133,8 @@ const hideAllMedia = computed(
         v-if="expandLinkedStatus && (linkedStatus !== undefined)"
         :status="linkedStatus"
         :actions="false"
-        :in-notification="inNotification"
+        :in-drawer="inDrawer ?? false"
+        :in-notification="inNotification ?? false"
       />
       <div v-if="isDM" />
     </StatusSpoiler>

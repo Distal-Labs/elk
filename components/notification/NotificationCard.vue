@@ -78,7 +78,7 @@ const { notification } = defineProps<{
       </StatusCard>
     </template>
     <template v-else-if="['status', 'mention', 'poll'].includes(notification.type)">
-      <StatusQuoteCard :status="notification.status!" :actions="true" :in-notification="true" my-4 />
+      <StatusQuoteCard :status="notification.status!" :actions="true" :in-notification="true" :in-drawer="false" my-4 />
     </template>
     <template v-else>
       <!-- type 'favourite' and 'reblog' should always rendered by NotificationGroupedLikes -->

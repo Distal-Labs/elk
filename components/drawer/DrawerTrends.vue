@@ -1,9 +1,15 @@
 <script lang="ts" setup>
 const { t } = useI18n()
 
-const { posts, trendSource } = $(await useTrends())
+const { posts, refresh, trendSource } = $(await useTrends())
 
 const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'feditrends'))
+
+onReactivated(() => {
+  // Silently update data when reentering the page
+  // The user will see the previous content first, and any changes will be updated to the UI when the request is completed
+  refresh()
+})
 </script>
 
 <template v-if="isHydrated && currentUser" mt-0>

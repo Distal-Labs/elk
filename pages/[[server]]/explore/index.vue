@@ -16,8 +16,7 @@ useHydratedHead({
 onReactivated(() => {
   // Silently update data when reentering the page
   // The user will see the previous content first, and any changes will be updated to the UI when the request is completed
-  if (posts.length === 0)
-    refresh()
+  refresh()
 })
 </script>
 
