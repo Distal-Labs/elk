@@ -80,7 +80,7 @@ async function refreshTrendingPosts(): Promise<mastodon.v1.Status[]> {
   if (data.value !== null) {
     const results = Array<mastodon.v1.Status>()
     await Promise.allSettled(changeKeysToCamelCase(data.value)
-      .sort((a, b) => sortPosts(a, b)).slice(0, 20)
+      .sort((a, b) => sortPosts(a, b))
       .map(async (trendingPost) => {
         try {
           const federatedTrendingPost = await federateTrendingPosts(trendingPost)
@@ -115,7 +115,7 @@ export async function retrieveOrRefreshTrends() {
   // }
 
   const posts = await refreshTrendingPosts()
-  trendsStorage.value.posts = posts
+  trendsStorage.value.posts = posts.sort((a, b) => sortPosts(a, b))
   trendsStorage.value.timestamp = Date.now()
   return trendsStorage.value
 }
@@ -127,7 +127,7 @@ async function refresh() {
 export function useTrends() {
   const t = reactive(getTrendingCache())
   return {
-    posts: t.posts,
+    posts: t.posts.sort((a, b) => sortPosts(a, b)),
     trendSource,
     refresh,
   }
