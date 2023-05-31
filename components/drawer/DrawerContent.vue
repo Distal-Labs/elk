@@ -23,7 +23,7 @@ const props = withDefaults(
       max-w-full
       scrollbar-hide
       border-t-2
-      mx-4 pt-4
+      mx-4 pt-0
       class="zen-hide"
     >
       <DrawerTrends v-if="isHydrated && currentUser && props.showTrendingPosts" />

@@ -6,11 +6,13 @@ const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
   details?: boolean
   command?: boolean
+  inDrawer?: boolean
   isQuotableStatus?: boolean
   isBeingQuoted?: boolean
   explainIsQuotableStatus?: string
   toggleQuote?: () => Promise<void>
 }>(), {
+  inDrawer: false,
   isBeingQuoted: false,
   isQuotableStatus: false,
   explainIsQuotableStatus: 'This post is not quotable',
@@ -83,7 +85,7 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div flex-1>
+    <div v-if="!inDrawer" flex-1>
       <StatusActionButton
         :content="quoteButtonTooltip"
         text=""

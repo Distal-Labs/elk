@@ -1,16 +1,16 @@
 import type { mastodon } from 'masto'
-import { STORAGE_KEY_TRENDS, STORAGE_KEY_TRENDS_CURRENT_USER } from '~/constants'
+import { STORAGE_KEY_TRENDS } from '~/constants'
 import { type FedifiedTrends } from '~/types'
 
 const defaultTrends: FedifiedTrends = { posts: [], links: [], tags: [], timestamp: Date.now() }
 
-const userHandle = $computed(() => (currentUser.value) ? `${currentUser.value.account.acct}` : null)
+// const userHandle = $computed(() => (currentUser.value) ? `${currentUser.value.account.acct}` : null)
 const trendsStorage = useLocalStorage<FedifiedTrends>(STORAGE_KEY_TRENDS, defaultTrends, { deep: true })
-const trendsUserStorage = useLocalStorage<string | null>(STORAGE_KEY_TRENDS_CURRENT_USER, userHandle, { deep: true })
+// const trendsUserStorage = useLocalStorage<string | null>(STORAGE_KEY_TRENDS_CURRENT_USER, userHandle, { deep: true })
 
 const trendSource = computed(() => (!currentUser.value || process.dev) ? 'feditrends' : 'fedified')
 
-const reqUrl: string = (trendSource.value === 'feditrends') ? 'https://api.feditrends.com/?hours=1&order=pop' : 'https://discover.fedified.com/api/v1/trends/posts'
+const reqUrl: string = (trendSource.value === 'feditrends') ? 'https://api.feditrends.com/?hours=3&order=pop' : 'https://discover.fedified.com/api/v1/trends/posts'
 
 function changeKeysToCamelCase<T>(d: T): T {
   function transformCase(s: string) {
@@ -99,20 +99,20 @@ async function refreshTrendingPosts(): Promise<mastodon.v1.Status[]> {
 }
 
 export async function initializeTrends() {
-  trendsStorage.value = defaultTrends
+  // trendsStorage.value = defaultTrends
   return await refreshTrendingPosts()
 }
 
 export async function retrieveOrRefreshTrends() {
-  if (Date.now() > (getTrendingCache().timestamp + 3600 * 1000)) { // 1 hr
-    console.warn('Resetting trends because the cache has expired')
-    trendsStorage.value = defaultTrends
-  }
+  // if (Date.now() > (getTrendingCache().timestamp + 3600 * 1000)) { // 1 hr
+  //   console.warn('Resetting trends because the cache has expired')
+  //   trendsStorage.value = defaultTrends
+  // }
 
-  if (trendsUserStorage.value !== userHandle) {
-    console.warn('Resetting trending posts because the active user has changed')
-    trendsStorage.value.posts = defaultTrends.posts
-  }
+  // if (trendsUserStorage.value !== userHandle) {
+  //   console.warn('Resetting trending posts because the active user has changed')
+  //   trendsStorage.value.posts = defaultTrends.posts
+  // }
 
   const posts = await refreshTrendingPosts()
   trendsStorage.value.posts = posts

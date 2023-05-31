@@ -4,11 +4,13 @@ import type { mastodon } from 'masto'
 const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
   actions: boolean
+  inDrawer: boolean
   inNotification: boolean
   isBeingQuoted?: boolean
   toggleQuote?: <T extends Node>(quotableElement: T) => Promise<void>
 }>(), {
   actions: false,
+  inDrawer: true,
   inNotification: false,
 })
 
@@ -23,8 +25,8 @@ const serverName: string = $computed(() => acct.split('@')[1])
 
 const timeAgoOptions = useTimeAgoOptions(true)
 const timeago = useTimeAgo(() => status.createdAt, timeAgoOptions)
-// const isQuotableStatus = $computed(() => isQuotable(status))
-// const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
+const isQuotableStatus = $computed(() => isQuotable(status))
+const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
 
 // Content Filter logic
 const filterResult = $computed(() => status.filtered?.length ? status.filtered[0] : null)
@@ -76,50 +78,54 @@ function go(evt: MouseEvent | KeyboardEvent) {
       <!-- START -->
       <!-- Account Info -->
       <div flex basis-full flex-nowrap items-center space-x-2>
-        <AccountHoverWrapper :account="status.account" flex basis-full flex-nowrap items-center space-x-2>
-          <NuxtLink
-            :to="getAccountRoute(status.account)"
-            flex="~ row gap-2"
-            flex-nowrap
-            items-center
-            text-link-rounded
-          >
-            <div flex="~ row gap-2" grow flex-nowrap items-center justify-items-start align-baseline min-w-fit max-w-fit font-bold text-primary>
-              <AccountAvatar
-                :account="status.account" :square="false"
-                basis-1em flex-auto max-w-5 line-clamp-1 ws-pre-wrap
-              />
-              <AccountDisplayName
-                :account="status.account" :hide-emojis="getPreferences(userSettings, 'hideUsernameEmojis')"
-                flex-none min-w-fit max-w-fit font-bold line-clamp-1 ws-pre-wrap break-all text-primary
-              />
-              <AccountBotIndicator
-                v-if="status.account.bot"
-                flex-none min-w-fit max-w-fit me-1
-              />
-            </div>
+        <div flex-auto max-w-full line-clamp-1>
+          <AccountHoverWrapper :account="status.account" flex basis-full flex-nowrap items-center space-x-2>
+            <NuxtLink
+              :to="getAccountRoute(status.account)"
+              flex="~ row gap-2"
+              flex-nowrap
+              items-center
+              text-link-rounded
+            >
+              <div flex="~ row gap-2" grow flex-nowrap items-center justify-items-start align-baseline min-w-fit max-w-fit font-bold text-primary>
+                <AccountAvatar
+                  :account="status.account" :square="false"
+                  basis-1em flex-auto max-w-5 line-clamp-1 ws-pre-wrap
+                />
+                <AccountDisplayName
+                  :account="status.account" :hide-emojis="getPreferences(userSettings, 'hideUsernameEmojis')"
+                  flex-none min-w-fit max-w-fit font-bold line-clamp-1 ws-pre-wrap break-all text-primary
+                />
+                <AccountBotIndicator
+                  v-if="status.account.bot && !inDrawer"
+                  flex-none min-w-fit max-w-fit me-1
+                />
+              </div>
 
-            <div flex="~ row gap-2" shrink min-w-0 flex-nowrap items-start align-baseline max-w-fit class="zen-none">
-              <div flex="~ row gap-0" basis-0 grow min-w-0 flex-nowrap items-start align-baseline max-w-fit line-clamp-1 ws-pre-wrap class="zen-none">
-                <div min-w-content>
-                  <span text-secondary>{{ username }}</span>
-                </div>
-                <div v-if="serverName" basis-0 grow min-w-0 max-w-fit flex-nowrap items-start align-baseline>
-                  <span line-clamp-1 overflow-x-hidden text-secondary font-thin p0 m0 break-all>@{{ serverName }}</span>
-                </div>
-                <div flex-none items-start align-baseline min-w-fit line-clamp-1 class="zen-none">
-                  <span text-secondary text-secondary-light> &bull; {{ timeago }}</span>
+              <div v-if="!inDrawer" flex="~ row gap-2" shrink min-w-0 flex-nowrap items-start align-baseline max-w-fit class="zen-none">
+                <div flex="~ row gap-0" basis-0 grow min-w-0 flex-nowrap items-start align-baseline max-w-fit line-clamp-1 ws-pre-wrap class="zen-none">
+                  <div min-w-content>
+                    <span text-secondary>{{ username }}</span>
+                  </div>
+                  <div v-if="serverName" basis-0 grow min-w-0 max-w-fit flex-nowrap items-start align-baseline>
+                    <span line-clamp-1 overflow-x-hidden text-secondary font-thin p0 m0 break-all>@{{ serverName }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div flex-auto />
-          </NuxtLink>
-        </AccountHoverWrapper>
-        <StatusActionsMore :status="status" :details="false" :command="false" :hide-favorited-and-boosted-by="false" :hide-mention-account="false" me--2 />
+              <div flex-auto items-start align-baseline min-w-fit line-clamp-1 class="zen-none">
+                <span flex-initial basis-0 max-w-fit text-secondary-light>&bull; </span><span min-w-fit text-secondary-light>{{ timeago }}</span>
+              </div>
+              <div flex-auto />
+            </NuxtLink>
+          </AccountHoverWrapper>
+        </div>
+        <div flex right-0 min-w-fit max-w-fit line-clamp-1>
+          <StatusActionsMore :status="status" :details="false" :command="false" :hide-favorited-and-boosted-by="false" :hide-mention-account="false" me--2 />
+        </div>
       </div>
       <!-- Content -->
-      <div space-y-3 my-2>
+      <div space-y-4 my-4>
         <NuxtLink :href="statusRoute.href" block @click.prevent="go($event)">
           <StatusBody :status="status" :with-action="false" class="font-light" />
         </NuxtLink>
@@ -146,16 +152,20 @@ function go(evt: MouseEvent | KeyboardEvent) {
           />
         </StatusSpoiler>
       </div>
-      <!-- <StatusActions
+      <StatusActions
         v-if="actions !== false"
         v-show="!getPreferences(userSettings, 'zenMode')"
         :status="status"
         :is-quotable-status="isQuotableStatus"
         :explain-is-quotable-status="explainIsQuotableStatus"
         :is-being-quoted="props.isBeingQuoted"
-      /> -->
+        :in-drawer="props.inDrawer"
+      />
       <!-- END -->
-      <div flex justify-between>
+      <div
+        v-if="!inDrawer && !inNotification && !actions"
+        flex justify-between mt-4
+      >
         <div />
         <NuxtLink
           :href="statusRoute.href"
