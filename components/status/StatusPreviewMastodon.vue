@@ -13,54 +13,53 @@ const props = withDefaults(defineProps<{
 const userSettings = useUserSettings()
 
 // build the Status from Card
-const card = $computed(() => props.card)
-const linkToStatus = $computed(() => props.linkToStatus)
-const sourceStatus = computed(() => props.sourceStatus)
+const username: string = $computed(() => props.linkToStatus.pathname.split('/')[1].replace('@', ''))
+const serverName: string = $computed(() => props.linkToStatus.hostname)
 
-const acct: string = $computed(() => (window.location.hostname === linkToStatus.host) ? linkToStatus.pathname.split('/')[1].replace('@', '') : `${linkToStatus.pathname.split('/')[1].replace('@', '')}@${linkToStatus.hostname}`)
-const username: string = $computed(() => acct.split('@')[0])
-const serverName: string = $computed(() => acct.split('@')[1])
 const possibleMediaAttachment: mastodon.v1.MediaAttachment | undefined = $computed(() => {
-  const hasImageAttachment = (card.description.search(/^attached.? ?\d* +image/gi) !== null)
-  const hasVideoAttachment = (card.description.search(/^attached.? ?\d* +video/gi) !== null)
+  const hasImageAttachment = (props.card.description.search(/^attached.? ?\d* +image/gi) !== null)
+  const hasVideoAttachment = (props.card.description.search(/^attached.? ?\d* +video/gi) !== null)
 
   if (!hasImageAttachment && !hasVideoAttachment)
     return undefined
   return {
-    id: card.image!,
+    id: props.card.image!,
     type: (hasImageAttachment) ? 'image' : 'video',
-    previewUrl: card.image!,
-    blurhash: card.blurhash,
+    previewUrl: props.card.image!,
+    blurhash: props.card.blurhash,
   }
 })
 
 const derivedStatus = $computed(() => {
-  const path: string = linkToStatus.pathname
+  const path: string = props.linkToStatus.pathname
   const placeholderAccount = {
     id: '',
-    acct,
-    displayName: card.title.replaceAll(/\(@[^\)]+\)/gi, '').trim(),
+    acct: `${props.linkToStatus.pathname.split('/')[1].replace('@', '')}@${props.linkToStatus.hostname}`,
+    displayName: props.card.title.replaceAll(/\(@[^\)]+\)/gi, '').trim(),
     bot: false,
     avatar: 'https://static.fedified.com/avatars/original/missing.png',
   }
 
   return {
     id: path.substring(path.lastIndexOf('/') + 1),
-    uri: linkToStatus.toString(),
-    url: linkToStatus.toString(),
-    createdAt: sourceStatus?.value?.createdAt, // this is a filler in lieu of a Masto API call
+    uri: props.linkToStatus.toString(),
+    url: props.linkToStatus.toString(),
+    createdAt: props.sourceStatus?.createdAt, // this is a filler in lieu of a Masto API call
     editedAt: null,
     mentions: Array<mastodon.v1.StatusMention>(),
     emojis: Array<mastodon.v1.CustomEmoji>(),
     language: null,
-    content: card.description.replace(/^attached.? ?\d* (?:image|video)?[\n\r]*/gi, '').trim(),
+    content: props.card.description.replace(/^attached.? ?\d* (?:image|video)?[\n\r]*/gi, '').trim(),
     // account: useAccountByHandle(acct).value ?? placeholderAccount as mastodon.v1.Account,
     account: placeholderAccount as mastodon.v1.Account,
     mediaAttachments: (!possibleMediaAttachment) ? Array<mastodon.v1.MediaAttachment>() : [possibleMediaAttachment],
+    reblog: null,
+    inReplyToId: null,
+    inReplyToAccountId: null,
+
   } as mastodon.v1.Status
 })
 
-const createdAt = useFormattedDateTime(derivedStatus.createdAt)
 const timeAgoOptions = useTimeAgoOptions(true)
 const timeago = useTimeAgo(() => derivedStatus.createdAt ?? Date.now(), timeAgoOptions)
 </script>

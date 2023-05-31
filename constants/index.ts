@@ -20,6 +20,8 @@ export const STORAGE_KEY_HIDE_EXPLORE_TAGS_TIPS = 'elk-hide-explore-tags-tips'
 export const STORAGE_KEY_NOTIFICATION = 'elk-notification'
 export const STORAGE_KEY_NOTIFICATION_POLICY = 'elk-notification-policy'
 export const STORAGE_KEY_PWA_HIDE_INSTALL = 'elk-pwa-hide-install'
+export const STORAGE_KEY_TRENDS = 'elk-fedified-trends'
+export const STORAGE_KEY_TRENDS_CURRENT_USER = 'elk-fedified-trends-current-user-handle'
 
 export const HANDLED_MASTO_URLS = /^(https?:\/\/)?([\w\d-]+\.)+\w+\/(@[@\w\d-\.]+)(\/objects)?(\/\d+)?$/
 

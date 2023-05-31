@@ -87,3 +87,10 @@ export type RecursivePartial<T> = {
 }
 
 export type StatusQuote = RecursivePartial<mastodon.v1.Status>
+
+export interface FedifiedTrends {
+  posts: mastodon.v1.Status[]
+  links: mastodon.v1.TrendLink[]
+  tags: mastodon.v1.Tag[]
+  timestamp: number
+}

@@ -1,4 +1,13 @@
 <script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    showTrendingPosts?: boolean
+    showNotifications?: boolean
+  }>(),
+  {
+    showTrendingPosts: true,
+    showNotifications: false,
+  })
 </script>
 
 <template>
@@ -17,7 +26,8 @@
       mx-4 pt-4
       class="zen-hide"
     >
-      <DrawerNotifications v-if="isHydrated && currentUser" />
+      <DrawerTrends v-if="isHydrated && currentUser && props.showTrendingPosts" />
+      <DrawerNotifications v-if="isHydrated && currentUser && props.showNotifications" />
     </div>
   </div>
 </template>

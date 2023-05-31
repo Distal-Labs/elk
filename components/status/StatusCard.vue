@@ -22,8 +22,10 @@ const props = withDefaults(
     // When looking into a detailed view of a post, we can simplify the replying badges
     // to the main expanded post
     main?: mastodon.v1.Status
+    // Fedified Extensions
     isBeingQuoted?: boolean
     toggleQuote?: <T extends Node>(quotableElement: T) => Promise<void>
+    isTrendingPost?: boolean
   }>(),
   {
     actions: true,
@@ -196,13 +198,13 @@ async function toggleQuote() {
               :status="status"
               :newer="newer"
               :context="context"
-              :is-preview="isPreview"
-              :in-notification="inNotification"
+              :is-preview="props.isPreview"
+              :in-notification="props.inNotification"
               mb2 :class="{ 'mt-2 mb1': isDM }"
             />
           </div>
           <StatusActions
-            v-if="actions !== false"
+            v-if="actions !== false && !props.isBeingQuoted"
             v-show="!getPreferences(userSettings, 'zenMode')"
             :status="status"
             :is-quotable-status="isQuotableStatus"

@@ -23,8 +23,8 @@ const serverName: string = $computed(() => acct.split('@')[1])
 
 const timeAgoOptions = useTimeAgoOptions(true)
 const timeago = useTimeAgo(() => status.createdAt, timeAgoOptions)
-const isQuotableStatus = $computed(() => isQuotable(status))
-const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
+// const isQuotableStatus = $computed(() => isQuotable(status))
+// const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
 
 // Content Filter logic
 const filterResult = $computed(() => status.filtered?.length ? status.filtered[0] : null)
@@ -146,6 +146,14 @@ function go(evt: MouseEvent | KeyboardEvent) {
           />
         </StatusSpoiler>
       </div>
+      <!-- <StatusActions
+        v-if="actions !== false"
+        v-show="!getPreferences(userSettings, 'zenMode')"
+        :status="status"
+        :is-quotable-status="isQuotableStatus"
+        :explain-is-quotable-status="explainIsQuotableStatus"
+        :is-being-quoted="props.isBeingQuoted"
+      /> -->
       <!-- END -->
       <div flex justify-between>
         <div />
@@ -162,13 +170,5 @@ function go(evt: MouseEvent | KeyboardEvent) {
         </NuxtLink>
       </div>
     </div>
-    <!-- <StatusActions
-      v-if="actions !== false"
-      v-show="!getPreferences(userSettings, 'zenMode')"
-      :status="status"
-      :is-quotable-status="isQuotableStatus"
-      :explain-is-quotable-status="explainIsQuotableStatus"
-      :is-being-quoted="props.isBeingQuoted"
-    /> -->
   </div>
 </template>

@@ -43,7 +43,6 @@ defineSlots<{
 }>()
 
 const { t } = useI18n()
-const nuxtApp = useNuxtApp()
 
 const { items, prevItems, update, state, endAnchor, error } = usePaginator(paginator, $$(stream), eventType, preprocess)
 
