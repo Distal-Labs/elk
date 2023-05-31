@@ -82,9 +82,14 @@ async function refreshTrendingPosts(): Promise<mastodon.v1.Status[]> {
     await Promise.allSettled(changeKeysToCamelCase(data.value)
       .sort((a, b) => sortPosts(a, b)).slice(0, 20)
       .map(async (trendingPost) => {
-        const federatedTrendingPost = await federateTrendingPosts(trendingPost)
-        if (federatedTrendingPost)
-          results.push(federatedTrendingPost)
+        try {
+          const federatedTrendingPost = await federateTrendingPosts(trendingPost)
+          if (federatedTrendingPost)
+            results.push(federatedTrendingPost)
+        }
+        catch (e) {
+          console.error((e as Error).message)
+        }
       }))
     Object.assign(trendingPosts, results.filter(_ => _ !== undefined))
     return results
