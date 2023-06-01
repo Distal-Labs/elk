@@ -57,6 +57,8 @@ function getTrendingCache(): FedifiedTrends {
 }
 
 async function federateTrendingPosts(remotePost: mastodon.v1.Status) {
+  const acct = `${remotePost.account.username}@${new URL(remotePost.uri).hostname}`
+  remotePost.account.acct = acct
   if (currentUser.value) {
     const { client } = useMasto()
     const results = (await client.value.v2.search({ q: remotePost.uri, type: 'statuses', resolve: true })).statuses
@@ -65,6 +67,7 @@ async function federateTrendingPosts(remotePost: mastodon.v1.Status) {
     const federatedPost = results[0]
     federatedPost.favouritesCount = remotePost.favouritesCount
     federatedPost.reblogsCount = remotePost.reblogsCount
+    federatedPost.account.acct = acct
     return federatedPost
   }
   return remotePost
