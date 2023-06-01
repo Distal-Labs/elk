@@ -10,9 +10,9 @@ onMounted(() => {
 })
 
 router.afterEach(async (to, from) => {
-  if (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(to.name as string) && (to.name !== from.name))
+  if ((currentUser.value !== undefined) && ((router.currentRoute.value.name === 'home') || (router.currentRoute.value.name === 'index') || (router.currentRoute.value.name === null)))
     backRef.value = ''
-  else if ((currentUser.value !== undefined) && ((router.currentRoute.value.name === 'home') || (router.currentRoute.value.name === 'index') || (router.currentRoute.value.name === null)))
+  else if (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(to.name as string) && (to.name !== from.name))
     backRef.value = ''
   else
     backRef.value = router.currentRoute.value.path
@@ -20,11 +20,11 @@ router.afterEach(async (to, from) => {
 
 async function handleBackClick() {
   if ((router.options.history.state.back === 'home'))
-    await router.replace('/home')
+    await router.push('/home')
   else if ((router.options.history.state.back === 'index') || (router.options.history.state.back === null) || backRef.value === '')
     await router.replace('/')
   else if ((currentUser.value !== undefined) && (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(router.currentRoute.value.name as string)))
-    await router.replace('/')
+    await router.push(router.options.history.state.back as string)
   else
     router.go(-1)
 }

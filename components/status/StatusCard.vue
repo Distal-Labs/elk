@@ -26,6 +26,7 @@ const props = withDefaults(
     isBeingQuoted?: boolean
     toggleQuote?: <T extends Node>(quotableElement: T) => Promise<void>
     isTrendingPost?: boolean
+    isLastStatusInConversation?: boolean
   }>(),
   {
     actions: true,
@@ -71,7 +72,7 @@ const timeago = useTimeAgo(() => status.createdAt, timeAgoOptions)
 
 const isSelfReply = $computed(() => status.inReplyToAccountId === status.account.id)
 const collapseRebloggedBy = $computed(() => rebloggedBy?.id === status.account.id)
-const isDM = $computed(() => status.visibility === 'direct')
+const isDM = $computed(() => props.isLastStatusInConversation || status.visibility === 'direct')
 
 const showUpperBorder = $computed(() => props.newer && !directReply)
 const showReplyTo = $computed(() => !replyToMain && !directReply)
@@ -213,6 +214,7 @@ async function toggleQuote() {
             :is-being-quoted="props.isBeingQuoted"
             :toggle-quote="toggleQuote"
             :is-d-m="isDM"
+            :is-last-status-in-conversation="props.isLastStatusInConversation"
           />
         </div>
       </template>

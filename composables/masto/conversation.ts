@@ -6,98 +6,67 @@ function removeFilteredItems(conversations: mastodon.v1.Conversation[], context:
   const isStrict = (filter: mastodon.v1.FilterResult) => filter.filter.filterAction === 'hide' && filter.filter.context.includes(context)
   const isFiltered = (conversation: mastodon.v1.Conversation) => !conversation.lastStatus?.filtered?.find(isStrict)
 
-  return [...conversations].filter(isFiltered)
+  return [...conversations].filter(isFiltered).filter(_ => _.accounts.findIndex(account => account.suspended === true) === -1)
 }
 
-export function filteredAndOrderedConversations(conversations: mastodon.v1.Conversation[]): mastodon.v1.Conversation[] {
+export function filteredConversations(conversations: mastodon.v1.Conversation[]): mastodon.v1.Conversation[] {
   // Remove conversations that contain statuses with one or more filtered statuses
   const filteredConversations = removeFilteredItems(removeFilteredItems(conversations, 'home'), 'thread')
 
-  const unreadConversationsWithLastStatus = filteredConversations
-    .filter(_ => _.unread && !!_.lastStatus)
-    .sort((a, b) => Date.parse(b.lastStatus!.createdAt) - Date.parse(a.lastStatus!.createdAt))
-
-  const readConversationsWithLastStatus = filteredConversations
-    .filter(_ => !_.unread && !!_.lastStatus)
-    .sort((a, b) => Date.parse(b.lastStatus!.createdAt) - Date.parse(a.lastStatus!.createdAt))
-
-  const unreadConversationsWithNullStatus = filteredConversations.filter(_ => _.unread && !_.lastStatus)
-
-  const readConversationsWithNullStatus = filteredConversations.filter(_ => !_.unread && !_.lastStatus)
-
-  return unreadConversationsWithLastStatus.concat(readConversationsWithLastStatus, unreadConversationsWithNullStatus, readConversationsWithNullStatus)
+  return filteredConversations
 }
 
 export function useConversations() {
-  const id = currentUser.value?.account.id
+  const accountId = currentUser.value?.account.id
 
   const { client, canStreaming } = $(useMasto())
 
+  function countConversations(): number {
+    if (!accountId || !conversations[accountId])
+      return 0
+    else return conversations[accountId]![1]?.filter(_ => _.unread).length
+  }
+
   function isLastStatusInConversation(statusId: string) {
-    if (!id || !conversations[id])
+    if (!accountId || !conversations[accountId])
       return undefined
 
-    const conversationsForCurrentUser = conversations[id]![1]
-    return conversationsForCurrentUser.findIndex(_ => _.lastStatus?.id === statusId) !== -1
+    return conversations[accountId]![1].findIndex(_ => _.lastStatus?.id === statusId) !== -1
   }
 
-  function isLastStatusUnread(statusId: string) {
-    if (!id || !conversations[id])
+  function isConversationUnread(inputId: string) {
+    if (!accountId || !conversations[accountId])
       return undefined
-
-    const conversationsForCurrentUser = conversations[id]![1]
-    return conversationsForCurrentUser.find(_ => _.lastStatus?.id === statusId)?.unread
+    else return conversations[accountId]![1].find(_ => (_.id === inputId) || (_.lastStatus?.id === inputId))?.unread
   }
 
-  function isConversationUnread(conversationId: string) {
-    if (!id || !conversations[id])
-      return undefined
-
-    const conversationsForCurrentUser = conversations[id]![1]
-    return conversationsForCurrentUser.find(_ => _.id === conversationId)?.unread
-  }
-
-  async function markLastStatusRead(statusId: string) {
-    if (!id || !conversations[id])
+  async function markConversationRead(inputId: string) {
+    if (!accountId || !conversations[accountId])
       return
-
-    const conversationsForCurrentUser = conversations[id]![1]
-    const conversation = conversationsForCurrentUser.find(_ => _.lastStatus?.id === statusId)
-
+    const conversation = conversations[accountId]![1].find(_ => (_.id === inputId) || (_.lastStatus?.id === inputId))
     if (conversation) {
-      const conversationId = conversation.id
-      await client.v1.conversations.read(conversationId)
-      conversation.unread = false
-    }
-  }
-
-  async function markConversationRead(conversationId: string) {
-    if (!id || !conversations[id])
-      return
-
-    const conversationsForCurrentUser = conversations[id]![1]
-    const conversation = conversationsForCurrentUser.find(_ => _.id === conversationId)
-
-    if (conversation) {
-      await client.v1.conversations.read(conversationId)
-      conversation.unread = false
+      conversations[accountId]![1] = conversations[accountId]![1].filter(_ => (_.id !== conversation.id))
+      return await client.v1.conversations.read(conversation.id)
+        .catch((e) => {
+          console.error(`Error encountered while marking conversation as readnotification on the Mastodon server: ${(e as Error).message}`)
+        })
     }
   }
 
   async function connect(): Promise<void> {
-    if (!isHydrated.value || !id || conversations[id] || !currentUser.value?.token)
+    if (!isHydrated.value || !accountId || conversations[accountId] || !currentUser.value?.token)
       return
 
     let resolveStream
     const stream = new Promise<WsEvents>(resolve => resolveStream = resolve)
-    conversations[id] = [stream, []]
+    conversations[accountId] = [stream, []]
 
     await until($$(canStreaming)).toBe(true)
 
     client.v1.stream.streamDirectTimeline().then(resolveStream)
     stream.then(s => s.on('conversation', (n) => {
-      if (conversations[id])
-        conversations[id]![1].unshift(n)
+      if (conversations[accountId])
+        conversations[accountId]![1].unshift(n)
     }))
 
     const paginator = client.v1.conversations.list({ limit: 30 })
@@ -107,7 +76,7 @@ export function useConversations() {
         for (const conversation of result.value) {
           if (conversation.unread === false)
             return
-          conversations[id]![1].push(conversation)
+          conversations[accountId]![1].push(conversation)
         }
       }
       else {
@@ -117,10 +86,10 @@ export function useConversations() {
   }
 
   function disconnect(): void {
-    if (!id || !conversations[id])
+    if (!accountId || !conversations[accountId])
       return
-    conversations[id]![0].then(stream => stream.disconnect())
-    conversations[id] = undefined
+    conversations[accountId]![0].then(stream => stream.disconnect())
+    conversations[accountId] = undefined
   }
 
   watch(currentUser, disconnect)
@@ -130,12 +99,10 @@ export function useConversations() {
   })
 
   return {
-    countUnreadConversations: computed(() => id ? conversations[id]?.[1]?.filter(_ => _.unread)?.length ?? 0 : 0),
     disconnect,
     isLastStatusInConversation,
-    isLastStatusUnread,
+    countUnreadConversations: computed(() => accountId ? countConversations() : 0),
     isConversationUnread,
-    markLastStatusRead,
     markConversationRead,
   }
 }

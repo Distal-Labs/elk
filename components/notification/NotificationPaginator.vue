@@ -151,8 +151,12 @@ function preprocess(items: NotificationSlot[]): NotificationSlot[] {
   return groupItems(removeFiltered(flattenedNotifications))
 }
 
-const { clearNotifications } = useNotifications()
 const { formatNumber } = useHumanReadableNumber()
+
+const { dismissOneNotification } = useNotifications()
+async function dismiss(id: string) {
+  dismissOneNotification(id)
+}
 </script>
 
 <template>
@@ -165,7 +169,7 @@ const { formatNumber } = useHumanReadableNumber()
     event-type="notification"
   >
     <template #updater="{ number, update }">
-      <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="() => { update(); clearNotifications() }">
+      <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="() => { update() }">
         {{ $t('timeline.show_new_items', number, { named: { v: formatNumber(number) } }) }}
       </button>
     </template>
@@ -186,6 +190,7 @@ const { formatNumber } = useHumanReadableNumber()
             v-else
             :notification="item"
             border="b base"
+            @vnode-mounted="dismiss(item.id)"
           />
         </DynamicScrollerItem>
       </template>
@@ -204,6 +209,7 @@ const { formatNumber } = useHumanReadableNumber()
           v-else
           :notification="item"
           border="b base"
+          @vnode-mounted="dismiss(item.id)"
         />
       </template>
     </template>

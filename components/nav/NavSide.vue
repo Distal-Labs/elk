@@ -2,7 +2,7 @@
 const { command } = defineProps<{
   command?: boolean
 }>()
-const { notifications } = useNotifications()
+const { countNotifications } = useNotifications()
 const { countUnreadConversations } = useConversations()
 const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 </script>
@@ -12,13 +12,12 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
     <NavSideItem :text="$t('nav.home')" to="/home" icon="i-ri:home-5-line" user-only :command="command" :replace="true" />
     <!-- <div class="spacer" shrink lg:hidden /> -->
     <NavSideItem :text="$t('nav.explore')" :to="isHydrated ? `/${currentServer}/explore` : '/explore'" icon="i-ri:hashtag" :command="command" :replace="true" />
-    <!-- <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only lg:hidden :command="command"> -->
     <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only :command="command" :replace="true">
       <template #icon>
         <div flex relative>
           <div class="i-ri:notification-4-line" text-xl />
-          <div v-if="notifications" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ notifications < 10 ? notifications : '•' }}
+          <div v-if="countNotifications > 0" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countNotifications < 10 ? countNotifications : '•' }}
           </div>
         </div>
       </template>
@@ -27,7 +26,7 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
       <template #icon>
         <div flex relative>
           <div class="i-ri:mail-line" text-xl />
-          <div v-if="countUnreadConversations" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
+          <div v-if="countUnreadConversations > 0" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
             {{ countUnreadConversations < 10 ? countUnreadConversations : '•' }}
           </div>
         </div>

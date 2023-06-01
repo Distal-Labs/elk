@@ -11,13 +11,13 @@ const props = withDefaults(defineProps<{
   isBeingQuoted?: boolean
   explainIsQuotableStatus?: string
   toggleQuote?: () => Promise<void>
+  isLastStatusInConversation?: boolean
   isDM?: boolean
 }>(), {
   inDrawer: false,
   isBeingQuoted: false,
   isQuotableStatus: false,
   explainIsQuotableStatus: 'This post is not quotable',
-  isDM: false,
 })
 
 const focusEditor = inject<typeof noop>('focus-editor', noop)
@@ -36,11 +36,11 @@ const {
   toggleReblog,
 } = $(useStatusActions(props))
 
-const { isLastStatusInConversation, isLastStatusUnread, markLastStatusRead } = useConversations()
+const { isConversationUnread, markConversationRead } = useConversations()
 
-const isMarkAsReadActionButtonActive = $computed(() => !isLastStatusUnread(status.id))
+const isStatusUnread = computed(() => isConversationUnread(status.id))
 
-const isPartOfDMThread = computed(() => isLastStatusInConversation(status.id) === true || props.isDM === true)
+const isPartOfDMThread = $computed(() => props.isLastStatusInConversation || props.isDM || status.visibility === 'direct')
 
 const quoteButtonTooltip = $computed((): string => {
   if (!isQuotableStatus)
@@ -130,7 +130,7 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div v-if="!isPartOfDMThread" flex-1>
+    <div flex-1>
       <StatusActionButton
         :content="$t('action.favourite')"
         :text="!getPreferences(userSettings, 'hideFavoriteCount') && status.favouritesCount ? status.favouritesCount : ''"
@@ -168,18 +168,18 @@ function reply() {
       />
     </div>
 
-    <div v-if="isPartOfDMThread" flex-none>
+    <div v-if="isPartOfDMThread && isStatusUnread" flex-none>
       <StatusActionButton
-        :content="isMarkAsReadActionButtonActive ? 'Mark as read' : 'Message is marked as read'"
+        :content="isStatusUnread ? 'Clear notification' : 'Message has been read'"
         :color="useStarFavoriteIcon ? 'text-rose' : 'text-yellow'"
         :hover="useStarFavoriteIcon ? 'text-rose' : 'text-yellow'"
         :elk-group-hover="useStarFavoriteIcon ? 'bg-rose/10' : 'bg-yellow/10' "
         icon="i-ri:mail-check-line"
         active-icon="i-ri:mail-check-fill"
-        :active="isMarkAsReadActionButtonActive"
-        :disabled="isMarkAsReadActionButtonActive"
+        :active="!isStatusUnread"
+        :disabled="!isStatusUnread"
         :command="command"
-        @click="markLastStatusRead(status.id)"
+        @click="markConversationRead(status.id)"
       />
     </div>
   </div>

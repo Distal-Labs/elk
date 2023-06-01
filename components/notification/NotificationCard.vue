@@ -4,6 +4,8 @@ import type { mastodon } from 'masto'
 const { notification } = defineProps<{
   notification: mastodon.v1.Notification
 }>()
+
+const isDM = computed(() => notification.status?.visibility === 'direct')
 </script>
 
 <template>
@@ -64,7 +66,7 @@ const { notification } = defineProps<{
       <!-- TODO: accept request -->
       <AccountCard :account="notification.account" />
     </template>
-    <template v-else-if="notification.type === 'update'">
+    <template v-else-if="!isDM && notification.type === 'update'">
       <StatusCard :status="notification.status!" :in-notification="true" :actions="false">
         <template #meta>
           <div flex="~" gap-1 items-center mt1>
@@ -77,8 +79,11 @@ const { notification } = defineProps<{
         </template>
       </StatusCard>
     </template>
-    <template v-else-if="['status', 'mention', 'poll'].includes(notification.type)">
-      <StatusQuoteCard :status="notification.status!" :actions="true" :in-notification="true" :in-drawer="false" my-4 />
+    <template v-else-if="!isDM && ['status', 'mention', 'poll'].includes(notification.type)">
+      <StatusCard :status="notification.status!" :actions="true" :in-notification="true" :in-drawer="false" />
+    </template>
+    <template v-else-if="isDM">
+      <div class="hidden" />
     </template>
     <template v-else>
       <!-- type 'favourite' and 'reblog' should always rendered by NotificationGroupedLikes -->

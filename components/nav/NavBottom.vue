@@ -9,7 +9,7 @@ const moreMenuVisible = ref(false)
 onMounted(() => {
   backRef.value = ''
 })
-const { notifications } = useNotifications()
+const { countNotifications } = useNotifications()
 const { countUnreadConversations } = useConversations()
 router.afterEach(async (to, from) => {
   if (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(to.name as string) && (to.name !== from.name))
@@ -41,8 +41,8 @@ router.afterEach(async (to, from) => {
       <NuxtLink to="/notifications" :aria-label="$t('nav.notifications')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
         <div flex relative>
           <div class="i-ri:notification-4-line" text-xl />
-          <div v-if="notifications" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ notifications < 10 ? notifications : '•' }}
+          <div v-if="countNotifications > 0" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countNotifications < 10 ? countNotifications : '•' }}
           </div>
         </div>
       </NuxtLink>

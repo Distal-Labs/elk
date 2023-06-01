@@ -8,11 +8,6 @@ const { conversation } = defineProps<{
 const withAccounts = $computed(() =>
   conversation.accounts.filter(account => account.id !== conversation.lastStatus?.account.id),
 )
-
-const { isConversationUnread } = useConversations()
-const isUnread = ref<boolean | undefined>(undefined)
-
-onMounted(() => isUnread.value = isConversationUnread(conversation.id))
 </script>
 
 <template>
@@ -24,7 +19,7 @@ onMounted(() => isUnread.value = isConversationUnread(conversation.id))
       v-if="conversation.lastStatus"
       :status="conversation.lastStatus"
       :actions="true"
-      :class="[isUnread ? 'bg-active' : '']"
+      :is-last-status-in-conversation="true"
     >
       <template #meta>
         <div flex gap-2 text-sm text-secondary font-bold>

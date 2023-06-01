@@ -29,11 +29,11 @@ const containerClass = computed(() => {
 const router = useRouter()
 async function handleBackClick() {
   if ((router.options.history.state.back === 'home'))
-    await router.replace('/home')
+    await router.push('/home')
   else if ((router.options.history.state.back === 'index') || (router.options.history.state.back === null))
     await router.replace('/')
   else if ((currentUser.value !== undefined) && (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(router.currentRoute.value.name as string)))
-    await router.replace('/')
+    await router.push(router.options.history.state.back as string)
   else
     router.go(-1)
 }
