@@ -3,6 +3,7 @@ const { command } = defineProps<{
   command?: boolean
 }>()
 const { notifications } = useNotifications()
+const { countUnreadConversations } = useConversations()
 const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 </script>
 
@@ -22,7 +23,16 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
         </div>
       </template>
     </NavSideItem>
-    <NavSideItem :text="$t('nav.conversations')" to="/conversations" icon="i-ri:mail-line" user-only :command="command" :replace="true" />
+    <NavSideItem :text="$t('nav.conversations')" to="/conversations" icon="i-ri:mail-line" user-only :command="command" :replace="true">
+      <template #icon>
+        <div flex relative>
+          <div class="i-ri:mail-line" text-xl />
+          <div v-if="countUnreadConversations" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countUnreadConversations < 10 ? countUnreadConversations : '•' }}
+          </div>
+        </div>
+      </template>
+    </NavSideItem>
     <NavSideItem :text="$t('nav.lists')" :to="isHydrated ? `/${currentServer}/lists` : '/lists'" icon="i-ri:file-list-line" user-only :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.bookmarks')" to="/bookmarks" icon="i-ri:bookmark-line" user-only :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.favourites')" to="/favourites" :icon="useStarFavoriteIcon ? 'i-ri:star-line' : 'i-ri:heart-3-line'" user-only :command="command" :replace="true" />

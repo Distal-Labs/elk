@@ -161,7 +161,8 @@ async function toggleQuote() {
           </AccountHoverWrapper>
 
           <div v-if="connectReply" w-full h-full flex mt--3px justify-center>
-            <div w-1px border="x base" mb-9 />
+            <div v-if="isDM" w-1px border="x primary" mb-9 />
+            <div v-else w-1px border="x base" mb-9 />
           </div>
         </div>
 
@@ -211,6 +212,7 @@ async function toggleQuote() {
             :explain-is-quotable-status="explainIsQuotableStatus"
             :is-being-quoted="props.isBeingQuoted"
             :toggle-quote="toggleQuote"
+            :is-d-m="isDM"
           />
         </div>
       </template>

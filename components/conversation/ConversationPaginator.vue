@@ -1,25 +1,46 @@
 <script setup lang="ts">
-import type { Paginator, mastodon } from 'masto'
+// @ts-expect-error missing types
+import { DynamicScrollerItem } from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import type { Paginator, WsEvents, mastodon } from 'masto'
 
-const { paginator } = defineProps<{
+const { paginator, stream, buffer = 10, endMessage } = defineProps<{
   paginator: Paginator<mastodon.v1.Conversation[], mastodon.DefaultPaginationParams>
+  stream?: Promise<WsEvents>
+  context?: mastodon.v2.FilterContext
+  preprocess?: (items: mastodon.v1.Conversation[]) => mastodon.v1.Conversation[]
+  buffer?: number
+  endMessage?: boolean | string
 }>()
 
-function preprocess(items: mastodon.v1.Conversation[]): mastodon.v1.Conversation[] {
-  const isAuthored = (conversation: mastodon.v1.Conversation) => conversation.lastStatus ? conversation.lastStatus.account.id === currentUser.value?.account.id : false
-  return items.filter(item => isAuthored(item) || !item.lastStatus?.filtered?.find(
-    filter => filter.filter.filterAction === 'hide' && filter.filter.context.includes('thread'),
-  ))
-}
+const { formatNumber } = useHumanReadableNumber()
+const virtualScroller = false // $(usePreferences('experimentalVirtualScroller'))
 </script>
 
 <template>
-  <CommonPaginator :paginator="paginator" :preprocess="preprocess">
-    <template #default="{ item }">
-      <ConversationCard
-        :conversation="item"
-        border="b base" py-1
-      />
+  <CommonPaginator v-bind="{ paginator, stream, preprocess, buffer, endMessage }" :virtual-scroller="virtualScroller">
+    <template #updater="{ number, update }">
+      <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="update">
+        {{ $t('timeline.show_new_items', number, { named: { v: formatNumber(number) } }) }}
+      </button>
+    </template>
+    <template #default="{ item, older, newer, active }">
+      <template v-if="virtualScroller">
+        <DynamicScrollerItem :item="item" :active="active" tag="article">
+          <ConversationCard
+            :conversation="item"
+            :context="context" :older="older" :newer="newer"
+            border="b base" py-1
+          />
+        </DynamicScrollerItem>
+      </template>
+      <template v-else>
+        <ConversationCard
+          :conversation="item"
+          :context="context" :older="older" :newer="newer"
+          border="b base" py-1
+        />
+      </template>
     </template>
   </CommonPaginator>
 </template>

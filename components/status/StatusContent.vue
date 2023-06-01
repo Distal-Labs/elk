@@ -90,6 +90,13 @@ const hideAllMedia = computed(
     return currentUser.value ? (getHideMediaByDefault(currentUser.value.account) && !!status.mediaAttachments.length) : false
   },
 )
+
+// onMounted(() => {
+//   if ((status.visibility === 'direct') && (context === 'details')) {
+//     console.info('Marking as read')
+//     useConversations().markConversationRead(status.id)
+//   }
+// })
 </script>
 
 <template>

@@ -10,6 +10,7 @@ onMounted(() => {
   backRef.value = ''
 })
 const { notifications } = useNotifications()
+const { countUnreadConversations } = useConversations()
 router.afterEach(async (to, from) => {
   if (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(to.name as string) && (to.name !== from.name))
     backRef.value = ''
@@ -46,7 +47,12 @@ router.afterEach(async (to, from) => {
         </div>
       </NuxtLink>
       <NuxtLink to="/conversations" :aria-label="$t('nav.conversations')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
-        <div i-ri:mail-line />
+        <div flex relative>
+          <div class="i-ri:mail-line" text-xl />
+          <div v-if="countUnreadConversations" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countUnreadConversations < 10 ? countUnreadConversations : '•' }}
+          </div>
+        </div>
       </NuxtLink>
     </template>
     <template v-else>

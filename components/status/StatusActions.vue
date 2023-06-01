@@ -11,11 +11,13 @@ const props = withDefaults(defineProps<{
   isBeingQuoted?: boolean
   explainIsQuotableStatus?: string
   toggleQuote?: () => Promise<void>
+  isDM?: boolean
 }>(), {
   inDrawer: false,
   isBeingQuoted: false,
   isQuotableStatus: false,
   explainIsQuotableStatus: 'This post is not quotable',
+  isDM: false,
 })
 
 const focusEditor = inject<typeof noop>('focus-editor', noop)
@@ -33,6 +35,12 @@ const {
   toggleFavourite,
   toggleReblog,
 } = $(useStatusActions(props))
+
+const { isLastStatusInConversation, isLastStatusUnread, markLastStatusRead } = useConversations()
+
+const isMarkAsReadActionButtonActive = $computed(() => !isLastStatusUnread(status.id))
+
+const isPartOfDMThread = computed(() => isLastStatusInConversation(status.id) === true || props.isDM === true)
 
 const quoteButtonTooltip = $computed((): string => {
   if (!isQuotableStatus)
@@ -85,7 +93,7 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div v-if="!inDrawer" flex-1>
+    <div v-if="!inDrawer && !isPartOfDMThread" flex-1>
       <StatusActionButton
         :content="quoteButtonTooltip"
         text=""
@@ -101,7 +109,7 @@ function reply() {
       />
     </div>
 
-    <div flex-1>
+    <div v-if="!isPartOfDMThread" flex-1>
       <StatusActionButton
         :content="$t('action.boost')"
         :text="!getPreferences(userSettings, 'hideBoostCount') && status.reblogsCount ? status.reblogsCount : ''"
@@ -122,7 +130,7 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div flex-1>
+    <div v-if="!isPartOfDMThread" flex-1>
       <StatusActionButton
         :content="$t('action.favourite')"
         :text="!getPreferences(userSettings, 'hideFavoriteCount') && status.favouritesCount ? status.favouritesCount : ''"
@@ -145,7 +153,7 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div flex-none>
+    <div v-if="!isPartOfDMThread" flex-none>
       <StatusActionButton
         :content="$t('action.bookmark')"
         :color="useStarFavoriteIcon ? 'text-rose' : 'text-yellow'"
@@ -157,6 +165,21 @@ function reply() {
         :disabled="isLoading.bookmarked"
         :command="command"
         @click="toggleBookmark()"
+      />
+    </div>
+
+    <div v-if="isPartOfDMThread" flex-none>
+      <StatusActionButton
+        :content="isMarkAsReadActionButtonActive ? 'Mark as read' : 'Message is marked as read'"
+        :color="useStarFavoriteIcon ? 'text-rose' : 'text-yellow'"
+        :hover="useStarFavoriteIcon ? 'text-rose' : 'text-yellow'"
+        :elk-group-hover="useStarFavoriteIcon ? 'bg-rose/10' : 'bg-yellow/10' "
+        icon="i-ri:mail-check-line"
+        active-icon="i-ri:mail-check-fill"
+        :active="isMarkAsReadActionButtonActive"
+        :disabled="isMarkAsReadActionButtonActive"
+        :command="command"
+        @click="markLastStatusRead(status.id)"
       />
     </div>
   </div>
