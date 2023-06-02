@@ -41,16 +41,16 @@ router.afterEach(async (to, from) => {
       <NuxtLink to="/notifications" :aria-label="$t('nav.notifications')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
         <div flex relative>
           <div class="i-ri:notification-4-line" text-xl />
-          <div v-if="countNotifications > 0" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ countNotifications < 10 ? countNotifications : '•' }}
+          <div v-if="countNotifications > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countNotifications < 100 ? countNotifications : '•' }}
           </div>
         </div>
       </NuxtLink>
       <NuxtLink to="/conversations" :aria-label="$t('nav.conversations')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
         <div flex relative>
           <div class="i-ri:mail-line" text-xl />
-          <div v-if="countUnreadConversations" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ countUnreadConversations < 10 ? countUnreadConversations : '•' }}
+          <div v-if="countUnreadConversations > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countUnreadConversations < 100 ? countUnreadConversations : '•' }}
           </div>
         </div>
       </NuxtLink>

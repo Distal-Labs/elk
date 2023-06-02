@@ -16,8 +16,8 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
       <template #icon>
         <div flex relative>
           <div class="i-ri:notification-4-line" text-xl />
-          <div v-if="countNotifications > 0" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ countNotifications < 10 ? countNotifications : '•' }}
+          <div v-if="countNotifications > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countNotifications < 100 ? countNotifications : '•' }}
           </div>
         </div>
       </template>
@@ -26,8 +26,8 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
       <template #icon>
         <div flex relative>
           <div class="i-ri:mail-line" text-xl />
-          <div v-if="countUnreadConversations > 0" class="top-[-0.3rem] right-[-0.3rem]" absolute font-bold rounded-full h-4 w-4 text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ countUnreadConversations < 10 ? countUnreadConversations : '•' }}
+          <div v-if="countUnreadConversations > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countUnreadConversations < 100 ? countUnreadConversations : '•' }}
           </div>
         </div>
       </template>

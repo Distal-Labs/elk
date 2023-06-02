@@ -8,13 +8,13 @@ export function useNotifications() {
   const { client, canStreaming } = $(useMasto())
 
   function countNotifications(...notificationTypes: string[]): number
-  function countNotifications(notificationTypes = 'all'): number {
+  function countNotifications(notificationTypes: string | string[] = ['all']): number {
     if (!accountId || !notifications[accountId])
       return 0
-    const notificationsExcludingDMs = notifications[accountId]![1].filter(_ => (_.status?.visibility !== 'direct'))
+    const notificationsExcludingDMs = notifications[accountId]![1].filter(_ => (_.status?.visibility !== 'direct') && _.status)
     if (notificationTypes.includes('all')) {
       // All available types ['mention', 'status', 'reblog', 'follow', 'follow_request', 'favourite', 'poll', 'update', 'admin.sign_up', 'admin.report']
-      return notificationsExcludingDMs.length
+      return notificationsExcludingDMs.filter(_ => ['mention', 'status', 'follow', 'follow_request', 'favourite', 'poll', 'update', 'admin.sign_up', 'admin.report', 'grouped-reblogs-and-favourites', 'grouped-follow'].includes(_.type)).length
     }
     else {
       return notificationsExcludingDMs.filter(_ => notificationTypes.includes(_.type)).length
@@ -61,7 +61,7 @@ export function useNotifications() {
 
     client.v1.stream.streamUser().then(resolveStream)
     stream.then(s => s.on('notification', (n) => {
-      if (notifications[accountId] && n.status?.visibility !== 'direct')
+      if (notifications[accountId] && n.status?.visibility !== 'direct' && n.status)
         notifications[accountId]![1].unshift(n)
     }))
 

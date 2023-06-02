@@ -180,11 +180,19 @@ async function dismiss(id: string) {
             v-if="item.type === 'grouped-follow'"
             :items="item"
             border="b base"
+            @vnode-mounted="{
+              item.items.forEach((_) => dismiss(_.id));
+              dismiss(item.id)
+            }"
           />
           <NotificationGroupedLikes
             v-else-if="item.type === 'grouped-reblogs-and-favourites'"
             :group="item"
             border="b base"
+            @vnode-mounted="item.likes.forEach((_) => {
+              dismiss(_.reblog?.id ?? '')
+              dismiss(_.favourite?.id ?? '');
+            })"
           />
           <NotificationCard
             v-else
@@ -199,11 +207,19 @@ async function dismiss(id: string) {
           v-if="item.type === 'grouped-follow'"
           :items="item"
           border="b base"
+          @vnode-mounted="{
+            item.items.forEach((_) => dismiss(_.id));
+            dismiss(item.id)
+          }"
         />
         <NotificationGroupedLikes
           v-else-if="item.type === 'grouped-reblogs-and-favourites'"
           :group="item"
           border="b base"
+          @vnode-mounted="item.likes.forEach((_) => {
+            dismiss(_.reblog?.id ?? '');
+            dismiss(_.favourite?.id ?? '');
+          })"
         />
         <NotificationCard
           v-else
