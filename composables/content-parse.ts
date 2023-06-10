@@ -603,8 +603,8 @@ function transformCollapseMentions(status?: mastodon.v1.Status, inReplyToStatus?
 function hrefToHandle(href: string): string | undefined {
   const matchUser = href.match(UserLinkRE)
   if (matchUser) {
-    const [, server, username] = matchUser
-    return `${username}@${server.replace(/(.+\.)(.+\..+)/, '$2')}`
+    const [, , handle] = matchUser
+    return handle
   }
 }
 

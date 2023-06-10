@@ -90,9 +90,8 @@ function handleMention(el: Node) {
     if (href) {
       const matchUser = href.match(UserLinkRE)
       if (matchUser) {
-        const [, server, username] = matchUser
-        const handle = `${username}@${server.replace(/(.+\.)(.+\..+)/, '$2')}`
-        el.attributes.href = `/${server}/@${username}`
+        const [, server, handle] = matchUser
+        el.attributes.href = `/${server}/@${handle}`
         return h(AccountHoverWrapper, { handle, class: 'inline-block' }, () => nodeToVNode(el))
       }
       const matchTag = href.match(TagLinkRE)

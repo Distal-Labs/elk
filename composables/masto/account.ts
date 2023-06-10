@@ -7,51 +7,33 @@ export function getDisplayName(account: mastodon.v1.Account, options?: { rich?: 
   return displayName.replace(/:([\w-]+?):/g, '')
 }
 
-export function accountToShortHandle(acct: string) {
-  return `@${acct.includes('@') ? acct.split('@')[0] : acct}`
-}
-
-export function getShortHandle({ acct }: mastodon.v1.Account) {
-  if (!acct)
+export function getShortHandle(account: mastodon.v1.Account) {
+  if (!account.acct)
     return ''
-  return accountToShortHandle(acct)
+  return `@${account.username}`
 }
 
 export function getServerName(account: mastodon.v1.Account) {
-  if (account.acct?.includes('@'))
-    return account.acct.split('@')[1]
-  // We should only lack the server name if we're on the same server as the account
-  return currentInstance.value ? getInstanceDomain(currentInstance.value) : ''
+  return account.url.replace('https://', '').split('/')[0]
 }
 
 export function getFullHandle(account: mastodon.v1.Account) {
-  const handle = `@${account.acct}`
-  if (!currentUser.value || account.acct.includes('@'))
-    return handle
-  return `${handle}@${getServerName(account)}`
+  const handle = `@${account.username}@${getServerName(account)}`
+  return (currentUser.value?.server) ? handle.replace(`@${currentUser.value?.server}`, '') : handle
 }
 
-export function toShortHandle(fullHandle: string) {
-  if (!currentUser.value)
-    return fullHandle
-  const server = currentUser.value.server
-  if (fullHandle.endsWith(`@${server}`))
-    return fullHandle.slice(0, -server.length - 1)
-  return fullHandle
+export function getAcctFromPerspectiveOfCurrentServer(account: mastodon.v1.Account) {
+  const accountWebfingerAddress = `${account.username}@${getServerName(account)}`
+  return accountWebfingerAddress.replace(`${currentUser.value?.server ?? ''}`, '')
 }
 
-export function extractAccountHandle(account: mastodon.v1.Account) {
-  let handle = getFullHandle(account).slice(1)
-  const uri = currentInstance.value ? getInstanceDomain(currentInstance.value) : currentServer.value
-  if (currentInstance.value && handle.endsWith(`@${uri}`))
-    handle = handle.slice(0, -uri.length - 1)
-
-  return handle
+export function parseParamAccountToPerspectiveOfCurrentServer(webfingerOrUriOrUrl: string) {
+  return (extractAccountWebfinger(webfingerOrUriOrUrl) ?? webfingerOrUriOrUrl).replace(`${currentServer ?? ''}`, '')
 }
 
-export function useAccountHandle(account: mastodon.v1.Account, fullServer = true) {
-  return computed(() => fullServer
-    ? getFullHandle(account)
-    : getShortHandle(account),
-  )
+export function parseAccountWebfingerRoute(account: mastodon.v1.Account) {
+  return {
+    server: currentServer.value,
+    account: getAcctFromPerspectiveOfCurrentServer(account),
+  }
 }

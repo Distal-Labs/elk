@@ -6,7 +6,7 @@ export function getAccountRoute(account: mastodon.v1.Account) {
     name: 'account-index',
     params: {
       server: currentServer.value,
-      account: extractAccountHandle(account),
+      account: getAcctFromPerspectiveOfCurrentServer(account),
     },
   })
 }
@@ -14,8 +14,7 @@ export function getAccountFollowingRoute(account: mastodon.v1.Account) {
   return useRouter().resolve({
     name: 'account-following',
     params: {
-      server: currentServer.value,
-      account: extractAccountHandle(account),
+      ...parseAccountWebfingerRoute(account),
     },
   })
 }
@@ -23,8 +22,7 @@ export function getAccountFollowersRoute(account: mastodon.v1.Account) {
   return useRouter().resolve({
     name: 'account-followers',
     params: {
-      server: currentServer.value,
-      account: extractAccountHandle(account),
+      ...parseAccountWebfingerRoute(account),
     },
   })
 }
@@ -38,7 +36,7 @@ export function getStatusRoute(status: mastodon.v1.Status) {
     name: 'status',
     params: {
       server: currentServer.value,
-      account: extractAccountHandle(status.account),
+      account: getAcctFromPerspectiveOfCurrentServer(status.account),
       status: status.id,
     },
   })
