@@ -415,6 +415,72 @@ export function fetchStatus(idOrUri: string, force = false): Promise<mastodon.v1
   return fetchStatusById(idOrUri, force)
 }
 
+async function federateRemoteAccount(webfingerOrUriOrUrl: string, force = false): Promise<mastodon.v1.Account | null> {
+  const accountWebfinger = extractAccountWebfinger(webfingerOrUriOrUrl)
+  if (!accountWebfinger)
+    return Promise.resolve(null)
+
+  if (accountWebfinger.includes(currentServer.value)) {
+    if (process.dev)
+      // eslint-disable-next-line no-console
+      console.info(`Local domain is authoritative, so redirecting resolution request for account: ${accountWebfinger}`)
+
+    return fetchAccountByHandle(accountWebfinger)
+  }
+
+  const cacheKeyAuthoritativeAccount = generateAccountWebfingerCacheKeyAccessibleToCurrentUser(accountWebfinger)!
+
+  const cachedAuthoritative: mastodon.v1.Account | Promise<mastodon.v1.Account> | undefined | null | number = cache.get(cacheKeyAuthoritativeAccount, { allowStale: false, updateAgeOnGet: false })
+
+  if (cachedAuthoritative) {
+    if (
+      !!cachedAuthoritative
+      && !(typeof cachedAuthoritative === 'number')
+      && !(cachedAuthoritative instanceof Promise)
+      && (cachedAuthoritative.acct === accountWebfinger)
+      && !force
+    ) {
+      return cachedAuthoritative
+    }
+    else if (cachedAuthoritative instanceof Promise) {
+      return cachedAuthoritative
+    }
+    else if (typeof cachedAuthoritative === 'number') {
+      if ([401, 403, 418].includes(cachedAuthoritative))
+        console.error(`Current user is forbidden or lacks authorization to fetch account: ${webfingerOrUriOrUrl}`)
+      if ([404].includes(cachedAuthoritative))
+        console.error(`The requested account Webfinger address cannot be found: ${webfingerOrUriOrUrl}`)
+      if ([429].includes(cachedAuthoritative))
+        console.error('The request was rate-limited by the Mastodon server')
+      if ([500, 501, 503].includes(cachedAuthoritative))
+        console.error('The Mastodon server is unresponsive')
+      return Promise.resolve(null)
+    }
+  }
+
+  const promise = useMastoClient().v2.search({ q: accountWebfinger, type: 'accounts', resolve: (!!currentUser.value), limit: 1 })
+    .then((results) => {
+      const account = results.accounts.pop()
+      if (!account) {
+        console.error(`Account could not be federated, perhaps it no longer exists: '${accountWebfinger}'`)
+        cache.set(cacheKeyAuthoritativeAccount, 404)
+        return Promise.resolve(null)
+      }
+
+      account.acct = accountWebfinger
+      // Intentionally overriding cached value because this should be the most recent
+      cache.set(cacheKeyAuthoritativeAccount, account)
+      return account
+    })
+    .catch((e) => {
+      console.error(`Encountered error while federating account using Webfinger address '${accountWebfinger}' | ${(e as Error).message}`)
+      cache.set(cacheKeyAuthoritativeAccount, null)
+      return Promise.resolve(null)
+    })
+  cache.set(cacheKeyAuthoritativeAccount, promise)
+  return promise
+}
+
 function fetchAccountById(accountId?: string | null, force = false): Promise<mastodon.v1.Account | null> {
   if (!accountId || accountId.trim() === '')
     return Promise.resolve(null)
@@ -514,6 +580,13 @@ export async function fetchAccountByHandle(str: string, force = false): Promise<
       return account
     })
     .catch((e) => {
+      if (!accountWebfinger.includes(currentServer.value)) {
+        if (process.dev)
+          // eslint-disable-next-line no-console
+          console.info(`Remote domain is authoritative, so redirecting resolution request for account: ${accountWebfinger}`)
+
+        return federateRemoteAccount(accountWebfinger)
+      }
       if (process.dev)
         console.error(`Encountered error while fetching account: '${accountWebfinger}' | ${(e as Error).message}`)
       cache.set(cacheKeyWebfingerAccount, 404)
