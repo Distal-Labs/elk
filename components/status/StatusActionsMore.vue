@@ -37,6 +37,10 @@ const isAuthor = $computed(() => status.account.id === currentUser.value?.accoun
 const { client } = $(useMasto())
 
 function getPermalinkUrl(status: mastodon.v1.Status) {
+  // check login
+  if (!checkLogin())
+    return
+
   const url = getStatusPermalinkRoute(status)
   if (url)
     return `${location.origin}/${url}`
@@ -44,6 +48,10 @@ function getPermalinkUrl(status: mastodon.v1.Status) {
 }
 
 async function copyLink(status: mastodon.v1.Status) {
+  // check login
+  if (!checkLogin())
+    return
+
   const url = getPermalinkUrl(status)
   if (url)
     await clipboard.copy(url)
@@ -63,6 +71,10 @@ async function shareLink(status: mastodon.v1.Status) {
 }
 
 async function deleteStatus() {
+  // check login
+  if (!checkLogin())
+    return
+
   if (await openConfirmDialog({
     title: t('confirm.delete_posts.title'),
     confirm: t('confirm.delete_posts.confirm'),
@@ -80,6 +92,10 @@ async function deleteStatus() {
 }
 
 async function deleteAndRedraft() {
+  // check login
+  if (!checkLogin())
+    return
+
   // TODO confirm to delete
   if (process.dev) {
     // eslint-disable-next-line no-alert
@@ -98,6 +114,10 @@ async function deleteAndRedraft() {
 }
 
 function reply() {
+  // check login
+  if (!checkLogin())
+    return
+
   if (details) {
     // TODO focus to editor
   }
@@ -108,6 +128,10 @@ function reply() {
 }
 
 async function editStatus() {
+  // check login
+  if (!checkLogin())
+    return
+
   await openPublishDialog(`edit-${status.id}`, {
     ...await getDraftFromStatus(status),
     editingStatus: status,
@@ -116,6 +140,10 @@ async function editStatus() {
 }
 
 function showFavoritedAndBoostedBy() {
+  // check login
+  if (!checkLogin())
+    return
+
   openFavoridedBoostedByDialog(status.id)
 }
 </script>

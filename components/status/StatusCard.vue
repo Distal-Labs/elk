@@ -90,7 +90,7 @@ async function toggleQuote() {
 </script>
 
 <template>
-  <StatusLink :status="status" :hover="hover">
+  <StatusLink :status="status" :hover="hover && currentUser !== undefined">
     <!-- Upper border -->
     <div :h="showUpperBorder ? '1px' : '0'" w-auto bg-border mb-1 />
 
@@ -124,11 +124,20 @@ async function toggleQuote() {
         >
           <div i-ri:repeat-fill me-46px text-green w-16px h-16px class="status-boosted" />
           <div absolute top-1 ms-24px w-32px h-32px rounded-full>
-            <AccountHoverWrapper :account="rebloggedBy">
-              <NuxtLink :to="getAccountRoute(rebloggedBy)">
-                <AccountAvatar :account="rebloggedBy" />
-              </NuxtLink>
-            </AccountHoverWrapper>
+            <template v-if="currentUser">
+              <AccountHoverWrapper :account="rebloggedBy">
+                <NuxtLink :to="getAccountRoute(rebloggedBy)">
+                  <AccountAvatar :account="rebloggedBy" />
+                </NuxtLink>
+              </AccountHoverWrapper>
+            </template>
+            <template v-else>
+              <AccountHoverWrapper :account="rebloggedBy" disabled>
+                <NuxtLink :to="undefined" @click.prevent="checkLogin()">
+                  <AccountAvatar :account="rebloggedBy" />
+                </NuxtLink>
+              </AccountHoverWrapper>
+            </template>
           </div>
           <AccountInlineInfo font-bold :account="rebloggedBy" :avatar="false" text-sm />
         </div>
@@ -155,12 +164,20 @@ async function toggleQuote() {
           <div v-if="collapseRebloggedBy" absolute flex items-center justify-center top--6px px-2px py-3px rounded-full bg-base>
             <div i-ri:repeat-fill text-green w-16px h-16px />
           </div>
-          <AccountHoverWrapper :account="status.account">
-            <NuxtLink :to="getAccountRoute(status.account)" rounded-full>
-              <AccountBigAvatar :account="status.account" />
-            </NuxtLink>
-          </AccountHoverWrapper>
-
+          <template v-if="currentUser">
+            <AccountHoverWrapper :account="status.account">
+              <NuxtLink :to="getAccountRoute(status.account)" rounded-full>
+                <AccountBigAvatar :account="status.account" />
+              </NuxtLink>
+            </AccountHoverWrapper>
+          </template>
+          <template v-else>
+            <AccountHoverWrapper :account="status.account" disabled>
+              <NuxtLink :to="undefined" rounded-full @click.prevent="checkLogin()">
+                <AccountBigAvatar :account="status.account" />
+              </NuxtLink>
+            </AccountHoverWrapper>
+          </template>
           <div v-if="connectReply" w-full h-full flex mt--3px justify-center>
             <div v-if="isDM" w-1px border="x primary" mb-9 />
             <div v-else w-1px border="x base" mb-9 />
@@ -172,7 +189,7 @@ async function toggleQuote() {
           <div ref="quotableElement" style="padding: 2rem;">
             <!-- Account Info -->
             <div flex items-center space-x-1>
-              <AccountHoverWrapper :account="status.account">
+              <AccountHoverWrapper :account="status.account" :disabled="!currentUser">
                 <StatusAccountDetails :account="status.account" />
               </AccountHoverWrapper>
               <div flex-auto />
@@ -182,11 +199,20 @@ async function toggleQuote() {
                   <StatusVisibilityIndicator v-if="status.visibility !== 'public'" :status="status" />
                   <div flex>
                     <CommonTooltip :content="createdAt">
-                      <NuxtLink :title="status.createdAt" :href="statusRoute.href" @click.prevent="go($event)">
-                        <time text-sm ws-nowrap hover:underline :datetime="status.createdAt">
-                          {{ timeago }}
-                        </time>
-                      </NuxtLink>
+                      <template v-if="currentUser">
+                        <NuxtLink :title="status.createdAt" :href="statusRoute.href" @click.prevent="go($event)">
+                          <time text-sm ws-nowrap hover:underline :datetime="status.createdAt">
+                            {{ timeago }}
+                          </time>
+                        </NuxtLink>
+                      </template>
+                      <template v-else>
+                        <NuxtLink :to="undefined" :title="status.createdAt" @click.prevent="checkLogin()">
+                          <time text-sm ws-nowrap hover:underline :datetime="status.createdAt">
+                            {{ timeago }}
+                          </time>
+                        </NuxtLink>
+                      </template>
                     </CommonTooltip>
                     <StatusEditIndicator :status="status" inline />
                   </div>
