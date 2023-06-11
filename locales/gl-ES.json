@@ -267,7 +267,7 @@
     "conversations": "Conversas",
     "explore": "Explorar",
     "favourites": "Favoritas",
-    "federated": "Federada",
+    "federated": "Mundial",
     "home": "Inicio",
     "list": "Lista",
     "lists": "Listas",
@@ -579,7 +579,7 @@
     "view_older_posts": "Non se mostrarán publicacións antigas desde outras instancias."
   },
   "title": {
-    "federated_timeline": "Cronoloxía Federada",
+    "federated_timeline": "Cronoloxía Mundial",
     "local_timeline": "Cronoloxía Local"
   },
   "tooltip": {

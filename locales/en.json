@@ -271,7 +271,7 @@
     "conversations": "Messages",
     "explore": "Explore",
     "favourites": "Favorites",
-    "federated": "Federated",
+    "federated": "Global",
     "home": "Home",
     "list": "List",
     "lists": "Lists",
@@ -616,7 +616,7 @@
     "view_older_posts": "Older posts from other instances may not be displayed."
   },
   "title": {
-    "federated_timeline": "Federated Timeline",
+    "federated_timeline": "Global Timeline",
     "local_timeline": "Local Timeline"
   },
   "tooltip": {
