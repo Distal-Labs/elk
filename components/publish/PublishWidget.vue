@@ -280,7 +280,7 @@ onDeactivated(() => {
       >
         <ContentMentionGroup v-if="draft.mentions?.length && shouldExpanded" replying>
           <button v-for="m, i of draft.mentions" :key="m" text-primary hover:color-red @click="draft.mentions?.splice(i, 1)">
-            {{ accountToShortHandle(m) }}
+            @{{ parseAcctFromPerspectiveOfCurrentServer(m)?.split('@')[0] }}
           </button>
         </ContentMentionGroup>
 

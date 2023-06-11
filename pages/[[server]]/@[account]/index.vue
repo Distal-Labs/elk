@@ -4,11 +4,11 @@ definePageMeta({
 })
 
 const params = useRoute().params
-const accountName = $(computedEager(() => parseParamAccountToPerspectiveOfCurrentServer(params.account as string)))
+const accountName = $(computedEager(() => parseAcctFromPerspectiveOfCurrentServer(params.account as string)))
 
 const { t } = useI18n()
 
-const { data: account, pending, refresh } = $(await useAsyncData(() => fetchAccountByHandle(accountName).catch(() => null), { immediate: process.client, default: () => shallowRef() }))
+const { data: account, pending, refresh } = $(await useAsyncData(() => fetchAccountByHandle(params.account as string).catch(() => null), { immediate: process.client, default: () => shallowRef() }))
 const relationship = $computed(() => account ? useRelationship(account).value : undefined)
 
 const userSettings = useUserSettings()

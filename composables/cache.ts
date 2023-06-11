@@ -58,11 +58,22 @@ export function changeKeysToCamelCase<T>(d: T): T {
 }
 
 export function extractAccountWebfinger(webfingerOrUriOrUrl: string) {
-  if (webfingerOrUriOrUrl.search(/^[\w]+@[a-z0-9][\w\.]+\.[a-z]+$/ig) === 0)
-    return webfingerOrUriOrUrl
-  const normalizedValue = webfingerOrUriOrUrl.replace('https://', '').replace('/users/', '/@').replace('@@', '@').replace(/^@+/i, '').replace(/\/statuses\/[0-9a-z\/]+$/ig, '')
+  if (webfingerOrUriOrUrl.includes('/tags/'))
+    return null
+
+  const preNormalized = webfingerOrUriOrUrl.replace('https://', '').replace(`/${currentServer.value}/@`, '')
+  if (preNormalized.replace(/^@+/i, '').search(/^[\w]+@[a-z0-9][\w\.]+\.[a-z]+$/ig) === 0)
+    return preNormalized.replace(/^@+/i, '')
+
+  const normalizedValue = preNormalized.replace('https://', '')
+    .replace('/users/', '/@')
+    .replace('/u/', '/@')
+    .replace('@@', '@')
+    .replace(/^@+/i, '')
+    .replace(/\/statuses\/[0-9a-z\/]+$/ig, '')
+
   if (normalizedValue.includes('/@')) {
-    const splitValue = normalizedValue.split('/')
+    const splitValue = normalizedValue.split('/@')
     return `${splitValue[1]}@${splitValue[0]}`
   }
   else if (
@@ -75,7 +86,7 @@ export function extractAccountWebfinger(webfingerOrUriOrUrl: string) {
   }
   else {
     if (process.dev)
-      console.error(`Malformed account URI or URL: ${webfingerOrUriOrUrl}`)
+      console.warn(`Malformed account URI or URL: ${webfingerOrUriOrUrl}`)
     return null
   }
 }
@@ -569,7 +580,7 @@ export async function fetchAccountByHandle(str: string, force = false): Promise<
     }
   }
 
-  const promise = useMastoClient().v1.accounts.lookup({ acct: parseParamAccountToPerspectiveOfCurrentServer(str) })
+  const promise = useMastoClient().v1.accounts.lookup({ acct: parseAcctFromPerspectiveOfCurrentServer(str) ?? str })
     .then((account) => {
       account.acct = accountWebfinger
 

@@ -24,11 +24,11 @@ export function getFullHandle(account: mastodon.v1.Account) {
 
 export function getAcctFromPerspectiveOfCurrentServer(account: mastodon.v1.Account) {
   const accountWebfingerAddress = `${account.username}@${getServerName(account)}`
-  return accountWebfingerAddress.replace(`${currentUser.value?.server ?? ''}`, '')
+  return accountWebfingerAddress.replace(`@${currentServer.value}`, '')
 }
 
-export function parseParamAccountToPerspectiveOfCurrentServer(webfingerOrUriOrUrl: string) {
-  return (extractAccountWebfinger(webfingerOrUriOrUrl) ?? webfingerOrUriOrUrl).replace(`${currentServer ?? ''}`, '')
+export function parseAcctFromPerspectiveOfCurrentServer(webfingerOrUriOrUrl: string) {
+  return extractAccountWebfinger(webfingerOrUriOrUrl)?.replace(`@${currentServer.value}`, '') ?? undefined
 }
 
 export function parseAccountWebfingerRoute(account: mastodon.v1.Account) {
