@@ -55,14 +55,23 @@ watch(quotableElement, () => {
 },
 { immediate: false },
 )
+
+function handleAccountClick(account?: mastodon.v1.Account) {
+  // check login
+  if (!checkLogin())
+    return undefined
+
+  if (account)
+    return getAccountRoute(account)
+}
 </script>
 
 <template>
   <div :id="`status-${status.id}`" flex flex-col gap-2 pt2 pb1 ps-3 pe-4 relative :lang="status.language ?? undefined" aria-roledescription="status-details">
     <StatusActionsMore :status="status" absolute inset-ie-2 top-2 @after-edit="$emit('refetchStatus')" />
     <div ref="quotableElement" style="padding: 2rem;">
-      <NuxtLink :to="getAccountRoute(status.account)" rounded-full hover:bg-active transition-100 pe5 me-a>
-        <AccountHoverWrapper :account="status.account">
+      <NuxtLink :to="handleAccountClick(status.account)" rounded-full hover:bg-active transition-100 pe5 me-a>
+        <AccountHoverWrapper :account="status.account" :disabled="!currentUser">
           <AccountInfo :account="status.account" />
         </AccountHoverWrapper>
       </NuxtLink>

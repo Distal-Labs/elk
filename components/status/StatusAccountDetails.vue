@@ -11,7 +11,7 @@ const userSettings = useUserSettings()
 
 <template>
   <NuxtLink
-    :to="link ? getAccountRoute(account) : undefined"
+    :to="(link && currentUser !== undefined) ? getAccountRoute(account) : undefined"
     flex="~ col" min-w-0 md:flex="~ row gap-2" md:items-center
     text-link-rounded
   >

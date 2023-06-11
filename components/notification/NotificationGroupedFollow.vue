@@ -46,6 +46,7 @@ const lang = $computed(() => {
           v-for="item in items.items"
           :key="item.id"
           :account="item.account"
+          :disabled="!currentUser"
         >
           <NuxtLink :to="getAccountRoute(item.account)">
             <AccountAvatar :account="item.account" w-12 h-12 />

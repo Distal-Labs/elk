@@ -90,7 +90,7 @@ async function toggleQuote() {
 </script>
 
 <template>
-  <StatusLink :status="status" :hover="hover">
+  <StatusLink :status="status" :hover="hover && currentUser !== undefined">
     <!-- Upper border -->
     <div :h="showUpperBorder ? '1px' : '0'" w-auto bg-border mb-1 />
 
@@ -124,7 +124,7 @@ async function toggleQuote() {
         >
           <div i-ri:repeat-fill me-46px text-green w-16px h-16px class="status-boosted" />
           <div absolute top-1 ms-24px w-32px h-32px rounded-full>
-            <AccountHoverWrapper :account="rebloggedBy">
+            <AccountHoverWrapper :account="rebloggedBy" :disabled="!currentUser">
               <NuxtLink :to="getAccountRoute(rebloggedBy)">
                 <AccountAvatar :account="rebloggedBy" />
               </NuxtLink>
@@ -155,8 +155,11 @@ async function toggleQuote() {
           <div v-if="collapseRebloggedBy" absolute flex items-center justify-center top--6px px-2px py-3px rounded-full bg-base>
             <div i-ri:repeat-fill text-green w-16px h-16px />
           </div>
-          <AccountHoverWrapper :account="status.account">
-            <NuxtLink :to="getAccountRoute(status.account)" rounded-full>
+          <AccountHoverWrapper :account="status.account" :disabled="!currentUser">
+            <NuxtLink v-if="!currentUser" :to="undefined" rounded-full>
+              <AccountBigAvatar :account="status.account" />
+            </NuxtLink>
+            <NuxtLink v-else :to="getAccountRoute(status.account)" rounded-full>
               <AccountBigAvatar :account="status.account" />
             </NuxtLink>
           </AccountHoverWrapper>
@@ -172,7 +175,7 @@ async function toggleQuote() {
           <div ref="quotableElement" style="padding: 2rem;">
             <!-- Account Info -->
             <div flex items-center space-x-1>
-              <AccountHoverWrapper :account="status.account">
+              <AccountHoverWrapper :account="status.account" :disabled="!currentUser">
                 <StatusAccountDetails :account="status.account" />
               </AccountHoverWrapper>
               <div flex-auto />
@@ -182,11 +185,18 @@ async function toggleQuote() {
                   <StatusVisibilityIndicator v-if="status.visibility !== 'public'" :status="status" />
                   <div flex>
                     <CommonTooltip :content="createdAt">
-                      <NuxtLink :title="status.createdAt" :href="statusRoute.href" @click.prevent="go($event)">
+                      <template v-if="currentUser">
+                        <NuxtLink :title="status.createdAt" :href="statusRoute.href" @click.prevent="go($event)">
+                          <time text-sm ws-nowrap hover:underline :datetime="status.createdAt">
+                            {{ timeago }}
+                          </time>
+                        </NuxtLink>
+                      </template>
+                      <template v-else>
                         <time text-sm ws-nowrap hover:underline :datetime="status.createdAt">
                           {{ timeago }}
                         </time>
-                      </NuxtLink>
+                      </template>
                     </CommonTooltip>
                     <StatusEditIndicator :status="status" inline />
                   </div>

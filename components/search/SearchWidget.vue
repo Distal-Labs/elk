@@ -69,6 +69,7 @@ function activate() {
       <input
         ref="input"
         v-model="query"
+        :disabled="currentUser === undefined"
         h-full
         rounded-3
         w-full

@@ -4,6 +4,15 @@ import type { mastodon } from 'masto'
 defineProps<{
   account: mastodon.v1.Account
 }>()
+
+function handleAccountClick(account?: mastodon.v1.Account) {
+  // check login
+  if (!checkLogin())
+    return undefined
+
+  if (account)
+    return getAccountRoute(account)
+}
 </script>
 
 <template>
@@ -14,12 +23,12 @@ defineProps<{
     </div>
 
     <div flex>
-      <NuxtLink :to="getAccountRoute(account.moved!)">
+      <NuxtLink :to="handleAccountClick(account.moved!)">
         <AccountInfo :account="account.moved!" />
       </NuxtLink>
       <div flex-auto />
       <div flex items-center>
-        <NuxtLink :to="getAccountRoute(account.moved as any)" btn-solid inline-block h-fit>
+        <NuxtLink :to="handleAccountClick(account.moved as any)" btn-solid inline-block h-fit>
           {{ $t('account.go_to_profile') }}
         </NuxtLink>
       </div>

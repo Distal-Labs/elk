@@ -16,7 +16,7 @@ const likes = $computed(() => group.likes.filter(i => i.favourite && !i.reblog))
         <div v-if="reblogs.length" flex="~ gap-1">
           <div i-ri:repeat-fill text-xl me-1 color-green />
           <template v-for="i, idx of reblogs" :key="idx">
-            <AccountHoverWrapper :account="i.account">
+            <AccountHoverWrapper :account="i.account" :disabled="!currentUser">
               <NuxtLink :to="getAccountRoute(i.account)">
                 <AccountAvatar text-primary font-bold :account="i.account" class="h-1.5em w-1.5em" />
               </NuxtLink>
@@ -29,7 +29,7 @@ const likes = $computed(() => group.likes.filter(i => i.favourite && !i.reblog))
         <div v-if="likes.length" flex="~ gap-1">
           <div i-ri:heart-fill text-xl me-1 color-red />
           <template v-for="i, idx of likes" :key="idx">
-            <AccountHoverWrapper :account="i.account">
+            <AccountHoverWrapper :account="i.account" :disabled="!currentUser">
               <NuxtLink :to="getAccountRoute(i.account)">
                 <AccountAvatar text-primary font-bold :account="i.account" class="h-1.5em w-1.5em" />
               </NuxtLink>

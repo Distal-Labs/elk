@@ -4,6 +4,7 @@ import type { mastodon } from 'masto'
 const props = defineProps<{
   status: mastodon.v1.Status
   hover?: boolean
+  isMain?: boolean
 }>()
 
 const el = ref<HTMLElement>()
@@ -19,11 +20,15 @@ function onclick(evt: MouseEvent | KeyboardEvent) {
 }
 
 function go(evt: MouseEvent | KeyboardEvent) {
+  // check login
+  if (!checkLogin())
+    return
+
   if (evt.metaKey || evt.ctrlKey) {
     window.open(statusRoute.href)
   }
   else {
-    cacheStatus(props.status)
+    // cacheStatus(props.status)
     router.push(statusRoute)
   }
 }
