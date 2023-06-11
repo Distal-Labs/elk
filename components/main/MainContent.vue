@@ -63,7 +63,7 @@ async function handleBackClick() {
         </div>
         <div flex items-center flex-shrink-0 gap-x-2>
           <slot name="actions" />
-          <PwaBadge lg:hidden />
+          <PwaBadge xl:hidden />
           <NavUser v-if="isHydrated" />
           <NavUserSkeleton v-else />
         </div>
@@ -72,7 +72,7 @@ async function handleBackClick() {
         <div hidden />
       </slot>
     </div>
-    <PwaInstallPrompt lg:hidden />
+    <PwaInstallPrompt xl:hidden />
     <div :class="isHydrated && wideLayout ? 'xl:w-full sm:max-w-600px' : 'sm:max-w-600px md:shrink-0'" m-auto>
       <div hidden :class="{ 'xl:block': $route.name !== 'tag' && !$slots.header }" h-6 />
       <slot />
