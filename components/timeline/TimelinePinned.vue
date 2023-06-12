@@ -1,7 +1,10 @@
 <script setup lang="ts">
-const paginator = useMastoClient().v1.accounts.listStatuses(currentUser.value!.account.id, { pinned: true })
+const account = currentUser.value?.account.id
+const paginator = account ? useMastoClient().v1.accounts.listStatuses(account, { pinned: true }) : null
 </script>
 
 <template>
-  <TimelinePaginator :paginator="paginator" />
+  <template v-if="paginator">
+    <TimelinePaginator :paginator="paginator" />
+  </template>
 </template>
