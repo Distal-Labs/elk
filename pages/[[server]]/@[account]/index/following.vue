@@ -8,7 +8,7 @@ definePageMeta({ name: 'account-following' })
 const account = await fetchAccountByHandle(handle)
 const paginator = account ? useMastoClient().v1.accounts.listFollowing(account.id, {}) : null
 
-const isSelf = account ? useSelfAccount(account) : false
+const isSelf = account ? useSelfAccount(account) : undefined
 
 if (account) {
   useHydratedHead({
@@ -18,7 +18,7 @@ if (account) {
 </script>
 
 <template>
-  <template v-if="account && paginator">
+  <template v-if="paginator && account">
     <AccountPaginator :paginator="paginator" :relationship-context="isSelf ? 'following' : undefined" context="following" :account="account" />
   </template>
 </template>

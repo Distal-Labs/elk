@@ -14,7 +14,7 @@ function reorderAndFilter(items: mastodon.v1.Status[]) {
   return reorderedTimeline(items, 'account')
 }
 
-const paginator = account ? useMastoClient().v1.accounts.listStatuses(account.id, { limit: 30, excludeReplies: true }) : null
+const paginator = account ? useMastoClient().v1.accounts.listStatuses(account.id, { limit: 30, excludeReplies: true }) : undefined
 
 if (account) {
   useHydratedHead({
@@ -26,7 +26,7 @@ if (account) {
 <template>
   <div>
     <AccountTabs />
-    <template v-if="account && paginator">
+    <template v-if="paginator && account">
       <TimelinePaginator :paginator="paginator" :preprocess="reorderAndFilter" context="account" :account="account" />
     </template>
   </div>

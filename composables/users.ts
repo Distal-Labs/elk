@@ -249,7 +249,7 @@ export async function fetchAccountInfo(client: mastodon.Client, server: string) 
   // TODO: lazy load preferences
   accountPreferencesMap.set(account.acct, preferences)
 
-  cacheAccount(account, server, true)
+  cacheAccount(account, true)
   return account
 }
 
