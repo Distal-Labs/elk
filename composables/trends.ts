@@ -4,47 +4,15 @@ import { type FedifiedTrends } from '~/types'
 
 const defaultTrends: FedifiedTrends = { posts: [], links: [], tags: [], timestamp: Date.now() }
 
-// const userHandle = $computed(() => (currentUser.value) ? `${currentUser.value.account.acct}` : null)
 const trendsStorage = useLocalStorage<FedifiedTrends>(STORAGE_KEY_TRENDS, defaultTrends, { deep: true })
-// const trendsUserStorage = useLocalStorage<string | null>(STORAGE_KEY_TRENDS_CURRENT_USER, userHandle, { deep: true })
 
 const trendSource = computed(() => (!currentUser.value || process.dev) ? 'feditrends' : 'fedified')
 
-const reqUrl: string = (trendSource.value === 'feditrends') ? 'https://api.feditrends.com/?hours=3&order=pop' : 'https://discover.fedified.com/api/v1/trends/posts'
+const reqPostsUrl: string = (trendSource.value === 'feditrends') ? 'https://api.feditrends.com/?type=statuses&hours=24&order=pop' : 'https://discover.fedified.com/api/v1/trends/posts'
 
-function changeKeysToCamelCase<T>(d: T): T {
-  function transformCase(s: string) {
-    return s.replaceAll(/_\w/g, (substring: string) => substring.replace('_', '').toUpperCase())
-  }
-  function _transformKeys(data: any, transform: (s: string) => string): any {
-    if (Array.isArray(data))
-      return data.map(value => transformKeys(value, transform))
-
-    if (data instanceof Object) {
-      return Object.fromEntries(Object.entries(data).map(([key, value]) => [
-        transform(key),
-        transformKeys(value, transform),
-      ]))
-    }
-    return data
-  }
-
-  function transformKeys(data: any, transform: (s: string) => string): any {
-    const f = (key: string) => {
-      // `PATCH /v1/preferences` uses `:` as a delimiter
-      if (key.includes(':'))
-        return key
-      // `PATCH /v2/filters` uses _destroy as a special key
-      if (key.startsWith('_'))
-        return key
-      return transform(key)
-    }
-    return _transformKeys(data, f)
-  }
-  return transformKeys(d, transformCase)
-}
-
-function sortPosts(a: mastodon.v1.Status, b: mastodon.v1.Status, sharedWeight = 3, likeWeight = 2, replyWeight = -0.5, decayWeight = -0.000001) {
+const isPostUpdateInProgress = ref<boolean>(false)
+// -0.01157407407, -0.005787037036, -0.002893518518, -0.001446759259, -0.0007233796295, -0.0003616898148, -0.0001808449074, -0.0000904224537
+function sortPosts(a: mastodon.v1.Status, b: mastodon.v1.Status, sharedWeight = 4, likeWeight = 8, replyWeight = -1, decayWeight = -0.0001808449074) {
   // Penalizing for replies down-ranks ratio'ed posts to avoid mass dunking
   return (
     ((b.reblogsCount * sharedWeight) + (b.favouritesCount * likeWeight) + (b.repliesCount * replyWeight) + ((Date.now() - Date.parse(b.createdAt)) * decayWeight))
@@ -57,26 +25,17 @@ function getTrendingCache(): FedifiedTrends {
 }
 
 async function federateTrendingPosts(remotePost: mastodon.v1.Status) {
-  const acct = `${remotePost.account.username}@${new URL(remotePost.uri).hostname}`
+  const acct = `${remotePost.account.username}@${remotePost.account.url.replace('https://', '').split('/')[0]}`
   remotePost.account.acct = acct
-  if (currentUser.value) {
-    const { client } = useMasto()
-    const results = (await client.value.v2.search({ q: remotePost.uri, type: 'statuses', resolve: true })).statuses
-    if (results.length === 0)
-      return undefined
-    const federatedPost = results[0]
-    federatedPost.favouritesCount = remotePost.favouritesCount
-    federatedPost.reblogsCount = remotePost.reblogsCount
-    federatedPost.account.acct = acct
-    return federatedPost
-  }
-  return remotePost
+  return await fetchStatus(remotePost.uri, false, true)
 }
 
-async function refreshTrendingPosts(): Promise<mastodon.v1.Status[]> {
+async function refreshTrendingPosts(force: boolean): Promise<mastodon.v1.Status[]> {
   const trendingPosts = reactive(getTrendingCache().posts)
+  if (trendingPosts && (trendingPosts.length > 0) && !force)
+    return trendingPosts
 
-  const req = new Request(reqUrl)
+  const req = new Request(reqPostsUrl)
   req.headers.set('User-Agent', 'Mozilla/5.0 (compatible; Fedified Discover/1.0.0; +https://discover.fedified.com)')
   req.headers.set('Accept', 'application/json')
   req.headers.delete('Authorization')
@@ -84,9 +43,14 @@ async function refreshTrendingPosts(): Promise<mastodon.v1.Status[]> {
   const { data, pending, error } = await useFetch<mastodon.v1.Status[]>(req)
 
   if (data.value !== null) {
+    const sorted = changeKeysToCamelCase(data.value.slice(0, 40)).sort((a, b) => sortPosts(a, b))
+
+    // If user is not logged in, then just return the raw values
+    if (!currentUser.value)
+      return sorted.slice(0, 40)
+
     const results = Array<mastodon.v1.Status>()
-    await Promise.allSettled(changeKeysToCamelCase(data.value)
-      .sort((a, b) => sortPosts(a, b))
+    await Promise.allSettled(sorted.slice(0, 40)
       .map(async (trendingPost) => {
         try {
           const federatedTrendingPost = await federateTrendingPosts(trendingPost)
@@ -98,10 +62,30 @@ async function refreshTrendingPosts(): Promise<mastodon.v1.Status[]> {
         }
       }))
     Object.assign(trendingPosts, results.filter(_ => _ !== undefined))
-    return results
+    return results.sort((a, b) => sortPosts(a, b))
   }
   console.error(`Trending posts were not updated | Pending?: ${pending.value} | Error?: ${error.value?.message}`)
-  return trendingPosts
+  return trendingPosts.sort((a, b) => sortPosts(a, b))
+}
+
+async function updateTrendingPosts(force: boolean): Promise<void> {
+  // if (!currentUser.value) return;
+
+  if (isPostUpdateInProgress.value) {
+    console.warn('Ignoring: trending post update is already in progress.')
+    return
+  }
+  isPostUpdateInProgress.value = true
+  try {
+    const posts = await refreshTrendingPosts(force)
+    trendsStorage.value.posts = posts.sort((a, b) => sortPosts(a, b))
+    trendsStorage.value.timestamp = Date.now()
+    isPostUpdateInProgress.value = false
+  }
+  catch (e) {
+    console.error(`Unable to fetch trending posts: ${(e as Error).message}`)
+    isPostUpdateInProgress.value = false
+  }
 }
 
 export async function initializeTrends() {
