@@ -88,12 +88,101 @@ async function updateTrendingPosts(force: boolean): Promise<void> {
   }
 }
 
-export async function initializeTrends() {
-  // trendsStorage.value = defaultTrends
-  return await refreshTrendingPosts()
+const reqTagsUrl: string = (trendSource.value === 'feditrends') ? 'https://api.feditrends.com/?type=tags&hours=12&order=pop' : 'https://discover.fedified.com/api/v1/trends/tags'
+
+const isTagUpdateInProgress = ref<boolean>(false)
+
+const topRankedTag = ref<string | null>(null)
+
+interface TagUsage { name: string; uses: number; tag?: string; statuses?: number; reblogs?: number }
+
+function sortTags(a: Partial<TagUsage>, b: Partial<TagUsage>) {
+  if (trendSource.value === 'feditrends')
+    return (((b.reblogs ?? 0) + (b.statuses ?? 0)) - ((a.reblogs ?? 0) + (a.statuses ?? 0)))
+
+  return ((b.uses ?? 0) - (a.uses ?? 0))
 }
 
-export async function retrieveOrRefreshTrends() {
+async function federateAndCacheTrendingTags(tagUsage: Partial<TagUsage>) {
+  if (!currentUser.value)
+    return null
+
+  const tagName = tagUsage.name ?? tagUsage.tag
+  if (tagName) {
+    const { client } = useMasto()
+    const results = (await client.value.v2.search({ q: tagName, type: 'hashtags', resolve: false })).hashtags
+    if (results.length === 0)
+      return undefined
+    const federatedTag = results[0]
+    if (federatedTag.history && federatedTag.history.length > 0) {
+      federatedTag.history.sort((a, b) => (Number(b.day ?? '0') - Number(a.day ?? '0')))[0].uses = String(tagUsage.uses ?? ((tagUsage.reblogs ?? 0) + (tagUsage.statuses ?? 0)))
+      return federatedTag
+    }
+  }
+}
+
+async function refreshTrendingTags(force: boolean): Promise<mastodon.v1.Tag[]> {
+  if (!currentUser.value)
+    return []
+
+  const trendingTags = reactive(getTrendingCache().tags)
+  if (trendingTags && (trendingTags.length > 0) && !force)
+    return trendingTags
+
+  const req = new Request(reqTagsUrl)
+  req.headers.set('User-Agent', 'Mozilla/5.0 (compatible; Fedified Discover/1.0.0; +https://discover.fedified.com)')
+  req.headers.set('Accept', 'application/json')
+  req.headers.delete('Authorization')
+
+  const { data, pending, error } = await useFetch<Partial<TagUsage>[]>(req)
+
+  const results = Array<mastodon.v1.Tag>()
+  if (data.value !== null) {
+    const sorted = data.value.sort((a, b) => sortTags(a, b))
+    await Promise.allSettled(sorted.slice(0, 40)
+      .map(async (trendingTag) => {
+        try {
+          const federatedTrendingTag = await federateAndCacheTrendingTags(trendingTag)
+          if (federatedTrendingTag)
+            results.push(federatedTrendingTag)
+        }
+        catch (e) {
+          console.error((e as Error).message)
+        }
+      }))
+    Object.assign(trendingTags, results.filter(_ => _ !== undefined))
+    return results.sort((a, b) => sortTags(a, b))
+  }
+  console.error(`Trending tags were not updated | Pending?: ${pending.value} | Error?: ${error.value?.message}`)
+  return trendingTags.sort((a, b) => sortTags(a, b))
+}
+
+async function updateTrendingTags(force: boolean): Promise<void> {
+  // if (!currentUser.value) return;
+
+  if (isTagUpdateInProgress.value)
+    return
+
+  isTagUpdateInProgress.value = true
+  topRankedTag.value = null
+  try {
+    const tags = await refreshTrendingTags(force)
+    const sortedTags = tags.sort((a, b) => sortTags(a, b))
+    trendsStorage.value.tags = sortedTags
+    trendsStorage.value.timestamp = Date.now()
+
+    if (sortedTags.length > 0)
+      topRankedTag.value = sortedTags[0].name
+
+    isTagUpdateInProgress.value = false
+  }
+  catch (e) {
+    console.error(`Unable to fetch trending tags: ${(e as Error).message}`)
+    isTagUpdateInProgress.value = false
+  }
+}
+
+async function retrieveOrRefreshTrends(force: boolean) {
   // if (Date.now() > (getTrendingCache().timestamp + 3600 * 1000)) { // 1 hr
   //   console.warn('Resetting trends because the cache has expired')
   //   trendsStorage.value = defaultTrends
@@ -103,22 +192,26 @@ export async function retrieveOrRefreshTrends() {
   //   console.warn('Resetting trending posts because the active user has changed')
   //   trendsStorage.value.posts = defaultTrends.posts
   // }
-
-  const posts = await refreshTrendingPosts()
-  trendsStorage.value.posts = posts.sort((a, b) => sortPosts(a, b))
-  trendsStorage.value.timestamp = Date.now()
-  return trendsStorage.value
+  await updateTrendingTags(force)
+  await updateTrendingPosts(force)
 }
 
-async function refresh() {
-  await retrieveOrRefreshTrends()
+export async function initializeTrends() {
+  await retrieveOrRefreshTrends(true)
 }
 
 export function useTrends() {
-  const t = reactive(getTrendingCache())
+  const currentTrendingPosts = computed(() => (getTrendingCache().posts.length > 0) ? getTrendingCache().posts.sort((a, b) => sortPosts(a, b)) : [])
+  const currentTrendingTags = computed(() => (getTrendingCache().tags.length > 0) ? getTrendingCache().tags.sort((a, b) => sortTags(a, b)) : [])
   return {
-    posts: t.posts.sort((a, b) => sortPosts(a, b)),
+    posts: currentTrendingPosts,
+    tags: currentTrendingTags,
     trendSource,
-    refresh,
+    updateTrendingTags,
+    updateTrendingPosts,
+    isPostUpdateInProgress,
+    isTagUpdateInProgress,
+    topRankedTag,
+    tagPaginator: computed(() => (topRankedTag.value) ? useMastoClient().v1.timelines.listHashtag(topRankedTag.value ?? 'TwitterMigration') : undefined),
   }
 }
