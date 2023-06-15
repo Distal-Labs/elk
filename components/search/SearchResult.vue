@@ -16,8 +16,9 @@ function onActivate() {
     as="RouterLink"
     hover:bg-active
     :active="active"
-    :to="result.to" py2 block px2
+    :to="result.to"
     :aria-selected="active"
+    block pl4 pr2 py4 m0
     :class="{ 'bg-active': active }"
     @click="() => onActivate()"
   >

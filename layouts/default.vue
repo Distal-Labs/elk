@@ -160,8 +160,8 @@ const appContainerClass = computed(() => {
         >
           <template v-if="shouldRenderRightNav">
             <slot name="right">
-              <div v-show="!isUserAdjustingSettings" hidden overscroll-y-contain xl="block sticky top-0 my0 mx0 pt0 pb2" overflow-hidden>
-                <div hidden xl="grid grid-rows-[auto_minmax(80vh,93vh)] gap-4">
+              <div v-show="!isUserAdjustingSettings" hidden overscroll-y-contain xl="block sticky top-0 my0 mx0 pt0 pb2" overflow-visible>
+                <div hidden xl="grid grid-rows-[auto_minmax(80vh,90vh)] gap-4 pl2">
                   <SearchWidget hidden xl="block sticky" />
                   <DrawerContent hidden xl="block overflow-y-hidden" />
                 </div>

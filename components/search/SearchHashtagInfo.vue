@@ -16,7 +16,7 @@ const totalTrend = $computed(() =>
       <div i-ri:hashtag text-secondary text-lg />
     </div>
     <div flex flex-col>
-      <span>
+      <span font-bold>
         {{ hashtag.name }}
       </span>
       <CommonTrending v-if="hashtag.history" :history="hashtag.history" text-xs text-secondary truncate />
