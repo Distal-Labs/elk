@@ -63,14 +63,13 @@ function activate() {
 </script>
 
 <template>
-  <div ref="el" relative group>
-    <div bg-base border="~ base" h10 ps-4 pe-1 rounded-3 flex="~ row" items-center relative focus-within:box-shadow-outline>
+  <div ref="el" max-h-80vh rounded-3 relative group z1000 overflow-visible>
+    <!-- INPUT -->
+    <div bg-card h13 ps-4 pe-3 rounded-7 flex="~ row" items-center relative focus-within:box-shadow-outline>
       <div i-ri:search-2-line pointer-events-none text-secondary mt="1px" class="rtl-flip" />
       <input
         ref="input"
         v-model="query"
-        h-full
-        rounded-3
         w-full
         bg-transparent
         outline="focus:none"
@@ -78,32 +77,40 @@ function activate() {
         pe-1
         ml-1
         :placeholder="isHydrated ? t('nav.search') : ''"
-        pb="1px"
         placeholder-text-secondary
         @keydown.down.prevent="shift(1)"
         @keydown.up.prevent="shift(-1)"
+        @keyup.esc.prevent="query = ''; input?.focus()"
         @keypress.enter="activate"
       >
-      <button v-if="query.length" btn-action-icon text-secondary @click="query = ''; input?.focus()">
+      <button v-if="query.length" flex-none btn-action-icon text-secondary @click="query = ''; input?.focus()">
         <span aria-hidden="true" class="i-ri:close-line" />
       </button>
     </div>
-    <!-- Results -->
+    <!-- RESULTS -->
     <div left-0 top-11 absolute w-full z10 group-focus-within="pointer-events-auto visible" invisible pointer-events-none>
-      <div w-full bg-base border="~ base" rounded-3 max-h-100 overflow-auto py2>
-        <span v-if="query.trim().length === 0" block text-center text-sm text-secondary>
+      <div
+        w-full bg-base rounded-3 max-h-70vh overflow-y-auto pt2 pb2
+        overflow-x-hidden
+        lg="max-h-50vh"
+        left-0 absolute
+        mt2
+        shadow-lg
+      >
+        <span v-if="query.trim().length === 0" block text-center text-md text-secondary>
           {{ t('search.search_desc') }}
         </span>
         <template v-else-if="!loading">
           <template v-if="results.length > 0">
             <SearchResult
-              v-for="(result, i) in results" :key="result.id"
+              v-for="(result, i) in results"
+              :key="result.id" bg-card
               :active="index === parseInt(i.toString())"
               :result="result"
               :tabindex="focused ? 0 : -1"
             />
           </template>
-          <span v-else block text-center text-sm text-secondary>
+          <span v-else block text-center text-md text-secondary>
             {{ t('search.search_empty') }}
           </span>
         </template>
