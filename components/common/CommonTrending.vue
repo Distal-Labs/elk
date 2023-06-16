@@ -17,11 +17,16 @@ const ongoingHot = $computed(() => {
   return history
 })
 
-const usage = $computed(() =>
-  ongoingHot.reduce((total: number, item) => total + (Number(
+const usage = $computed(() => {
+  const number = ongoingHot.reduce((total: number, item) => total + (Number(
     (metric === 'posts') ? item.uses : item.accounts,
-  ) || 0), 0),
-)
+  ) || 0), 0)
+
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    compactDisplay: 'short',
+  }).format(number)
+})
 </script>
 
 <template>
