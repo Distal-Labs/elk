@@ -8,7 +8,7 @@ const {
 } = $defineProps<{
   history: mastodon.v1.TagHistory[]
   maxDay?: number
-  metric: 'persons' | 'posts'
+  metric?: 'persons' | 'posts'
 }>()
 
 const ongoingHot = $computed(() => {
