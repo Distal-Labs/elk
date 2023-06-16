@@ -1,0 +1,71 @@
+<script setup lang="ts">
+const { as = 'button', command, disabled, content, icon } = defineProps<{
+  text?: string | number
+  content: string
+  color: string
+  icon: string
+  activeIcon?: string
+  hover: string
+  elkGroupHover: string
+  active?: boolean
+  disabled?: boolean
+  as?: string
+  command?: boolean
+}>()
+
+defineOptions({
+  inheritAttrs: false,
+})
+
+defineSlots<{
+  text: (props: {}) => void
+}>()
+
+const el = ref<HTMLDivElement>()
+
+useCommand({
+  scope: 'Actions',
+
+  order: -2,
+  visible: () => command && !disabled,
+
+  name: () => content,
+  icon: () => icon,
+
+  onActivate() {
+    const clickEvent = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+    })
+    el.value?.dispatchEvent(clickEvent)
+  },
+})
+</script>
+
+<template>
+  <button
+    v-bind="$attrs" ref="el"
+    w-fit flex gap-1 items-center transition-all select-none
+    rounded group
+    :hover=" !disabled ? hover : undefined"
+    focus:outline-none
+    :focus-visible="hover"
+    :class="(disabled) ? 'text-secondary-light' : (active ? color : 'text-secondary')"
+    :aria-label="content"
+    :disabled="disabled"
+  >
+    <CommonTooltip :content="content">
+      <div
+        rounded-full p2
+        v-bind="disabled ? {} : {
+          'elk-group-hover': elkGroupHover,
+          'group-focus-visible': elkGroupHover,
+          'group-focus-visible:ring': '2 current',
+        }"
+      >
+        <div :class="active && activeIcon ? activeIcon : icon" />
+      </div>
+    </CommonTooltip>
+  </button>
+</template>

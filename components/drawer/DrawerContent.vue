@@ -1,34 +1,76 @@
 <script setup lang="ts">
-const props = withDefaults(
-  defineProps<{
-    showTrendingPosts?: boolean
-    showNotifications?: boolean
-  }>(),
-  {
-    showTrendingPosts: true,
-    showNotifications: false,
-  })
+import type { DrawerContextOptionsType, DrawerContextType } from '~/types'
 
 const info = useBuildInfo()
+
+const drawerContext = ref<DrawerContextType>('posts')
+
+const { posts, isPostUpdateInProgress, tags, featuredTagName, selectFeaturedTag, isTagUpdateInProgress, trendSource } = useTrends()
+
+const trendingPosts = computed(() => {
+  return [
+    ...posts.value.slice(0, 20),
+  ]
+})
+
+const isLoading = computed(() => (isTagUpdateInProgress.value || isPostUpdateInProgress.value))
+const trendingTags = computed(() => {
+  return [
+    ...tags.value.slice(0, 5),
+  ]
+})
+
+function selectTag(tagName: string) {
+  selectFeaturedTag(tagName)
+}
+
+function changeContext(context: DrawerContextType, options?: DrawerContextOptionsType) {
+  drawerContext.value = context
+
+  if (options && options.tag)
+    selectTag(options.tag.name)
+}
+
+const cardLabel = computed(() => {
+  if (isPostUpdateInProgress.value || isTagUpdateInProgress.value)
+    return 'Loading trends...'
+
+  if (drawerContext.value === 'tags' && featuredTagName.value)
+    return `Trending: #${featuredTagName.value}`
+
+  if (drawerContext.value === 'posts')
+    return 'Trending posts'
+
+  return 'What\'s trending'
+})
 </script>
 
 <template>
   <nav>
-    <div hidden lg="h-full grid grid-rows-[minmax(0,90vh)_minmax(0,93vh)_auto] gap-4 overflow-hidden">
+    <div hidden lg="h-full grid grid-rows-[minmax(0,90vh)_auto_auto] gap-4 overflow-hidden">
       <div flex="~ col" justify-between h-full w-full overflow-x-hidden>
-        <div
-          v-if="isHydrated && currentUser"
-          flex
-          flex-col
-          overflow-y-scroll
-          overflow-x-clip
-          max-w-full
-          scrollbar-hide
-          mx-4 pt-0
-          class="zen-hide"
-        >
-          <DrawerTrends v-if="isHydrated && currentUser && props.showTrendingPosts" />
-          <DrawerNotifications v-if="isHydrated && currentUser && props.showNotifications" />
+        <div v-if="isHydrated && currentUser" hidden lg="grid grid-rows-0" overflow-hidden class="zen-hide">
+          <div
+            v-if="isHydrated && currentUser"
+            overflow-hidden
+            mx-0
+            pt-0 ps-4 pe-1
+            rounded-4
+            bg-card
+            class="zen-hide"
+          >
+            <DrawerTimeline
+              v-if="drawerContext && ['posts', 'tags'].includes(drawerContext)" hidden lg="block mx0 pt0"
+              :trend-source="trendSource"
+              :drawer-context="drawerContext"
+              :change-context="changeContext"
+              :posts="trendingPosts"
+              :tags="trendingTags"
+              :selected-tag-name="featuredTagName"
+              :is-loading="isLoading"
+              :label="cardLabel"
+            />
+          </div>
         </div>
       </div>
       <div flex-auto />

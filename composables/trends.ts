@@ -92,7 +92,7 @@ const reqTagsUrl: string = (trendSource.value === 'feditrends') ? 'https://api.f
 
 const isTagUpdateInProgress = ref<boolean>(false)
 
-const topRankedTag = ref<string | null>(null)
+const featuredTagName = ref<string | null>(null)
 
 interface TagUsage { name: string; uses: number; tag?: string; statuses?: number; reblogs?: number }
 
@@ -164,7 +164,7 @@ async function updateTrendingTags(force: boolean): Promise<void> {
     return
 
   isTagUpdateInProgress.value = true
-  topRankedTag.value = null
+  featuredTagName.value = null
   try {
     const tags = await refreshTrendingTags(force)
     const sortedTags = tags.sort((a, b) => sortTags(a, b))
@@ -172,7 +172,7 @@ async function updateTrendingTags(force: boolean): Promise<void> {
     trendsStorage.value.timestamp = Date.now()
 
     if (sortedTags.length > 0)
-      topRankedTag.value = sortedTags[0].name
+      featuredTagName.value = sortedTags[0].name
 
     isTagUpdateInProgress.value = false
   }
@@ -200,6 +200,10 @@ export async function initializeTrends() {
   await retrieveOrRefreshTrends(true)
 }
 
+function selectFeaturedTag(tagName: string) {
+  featuredTagName.value = tagName
+}
+
 export function useTrends() {
   const currentTrendingPosts = computed(() => (getTrendingCache().posts.length > 0) ? getTrendingCache().posts.sort((a, b) => sortPosts(a, b)) : [])
   const currentTrendingTags = computed(() => (getTrendingCache().tags.length > 0) ? getTrendingCache().tags.sort((a, b) => sortTags(a, b)) : [])
@@ -211,7 +215,7 @@ export function useTrends() {
     updateTrendingPosts,
     isPostUpdateInProgress,
     isTagUpdateInProgress,
-    topRankedTag,
-    tagPaginator: computed(() => (topRankedTag.value) ? useMastoClient().v1.timelines.listHashtag(topRankedTag.value ?? 'TwitterMigration') : undefined),
+    featuredTagName,
+    selectFeaturedTag,
   }
 }
