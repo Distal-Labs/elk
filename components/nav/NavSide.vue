@@ -2,24 +2,23 @@
 const { command } = defineProps<{
   command?: boolean
 }>()
+
+const route = useRoute()
+const disableCompose = computed(() => route.path?.startsWith('/compose'))
+
 const { countNotifications } = useNotifications()
 const { countUnreadConversations } = useConversations()
-const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
+// const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
+const { width: windowWidth } = useWindowSize()
+const isXL = computed(() => windowWidth.value >= 1280)
 </script>
 
 <template>
-  <!--
-  <nav sm:px3 flex="~ col gap2" shrink text-size-base leading-normal md:text-lg h-full my-1 place-content-evenly xl:place-content-start overflow-y-auto>
+  <nav sm:px3 flex="~ col gap2" shrink text-size-base leading-normal md:text-xl h-full my-1 place-content-evenly xl:place-content-start overflow-y-auto>
     <NavSideItem :text="$t('nav.home')" to="/home" icon="i-ri:home-5-line" user-only :command="command" :replace="true" />
+    <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" lg:hidden :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.explore')" :to="isHydrated ? `/${currentServer}/explore` : '/explore'" icon="i-ri:hashtag" :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only :command="command" :replace="true">
-  -->
-  <nav flex="~ col gap2" shrink text-size-base leading-normal md:text-lg place-content-start overflow-y-auto overscroll-contain overflow-x-hidden>
-    <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" xl:hidden :command="command" />
-
-    <div class="spacer" shrink xl:hidden />
-    <NavSideItem :text="$t('nav.home')" to="/home" icon="i-ri:home-5-line" user-only :command="command" />
-    <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only :command="command">
       <template #icon>
         <div flex relative>
           <div class="i-ri:notification-4-line" text-xl />
@@ -41,18 +40,20 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
     </NavSideItem>
     <NavSideItem :text="$t('nav.lists')" :to="isHydrated ? `/${currentServer}/lists` : '/lists'" icon="i-ri:file-list-line" user-only :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.bookmarks')" to="/bookmarks" icon="i-ri:bookmark-line" user-only :command="command" :replace="true" />
-    <NavSideItem :text="$t('nav.favourites')" to="/favourites" :icon="useStarFavoriteIcon ? 'i-ri:star-line' : 'i-ri:heart-3-line'" user-only :command="command" :replace="true" />
-    <div class="spacer" shrink hidden sm:block />
+    <!-- <NavSideItem :text="$t('nav.favourites')" to="/favourites" :icon="useStarFavoriteIcon ? 'i-ri:star-line' : 'i-ri:heart-3-line'" user-only :command="command" :replace="true" /> -->
     <NavSideItem :text="$t('nav.local')" :to="isHydrated ? `/${currentServer}/public/local` : '/public/local'" icon="i-ri:group-2-line " :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.federated')" :to="isHydrated ? `/${currentServer}/public` : '/public'" icon="i-ri:earth-line" :command="command" :replace="true" />
-
-    <div class="spacer" shrink hidden sm:block />
-    <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" lg:hidden :command="command" :replace="true" />
-    <div class="spacer" shrink hidden sm:block />
-    <NavSideItem :text="$t('action.compose')" to="/compose" icon="i-ri:quill-pen-line" user-only :command="command" :replace="false" />
-
-    <div class="spacer" shrink hidden sm:block />
-    <NavSideItem :text="$t('nav.settings')" to="/settings" icon="i-ri:settings-3-line" :command="command" />
+    <template v-if="!isXL">
+      <NavSideItem :text="$t('nav.settings')" to="/settings" icon="i-heroicons-ellipsis-horizontal-circle" :command="command" />
+      <div class="spacer" shrink hidden sm:block />
+      <CommonFloatingActionButton :text="$t('action.compose')" to="/compose" icon="i-ri:quill-pen-line" user-only :command="command" :replace="false" :disable="disableCompose" />
+      <div class="spacer" shrink hidden sm:block />
+    </template>
+    <template v-else>
+      <NavSideItem :text="$t('nav.settings')" to="/settings" icon="i-ri:settings-3-line" :command="command" />
+      <div class="spacer" shrink hidden sm:flex />
+      <CommonFloatingActionButton :text="$t('action.compose')" to="/compose" icon="i-ri:quill-pen-line" user-only :command="command" :replace="false" :disable="disableCompose" />
+    </template>
   </nav>
 </template>
 
