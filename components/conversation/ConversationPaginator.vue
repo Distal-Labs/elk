@@ -10,6 +10,7 @@ const { paginator, stream } = defineProps<{
 }>()
 
 const virtualScroller = false // $(usePreferences('experimentalVirtualScroller'))
+// const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
 
 const { formatNumber } = useHumanReadableNumber()
 </script>
