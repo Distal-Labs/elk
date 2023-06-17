@@ -34,7 +34,7 @@ export function usePaginator<T, P, U = T>(
     stream?.then((s) => {
       s.on(eventType, (status) => {
         if ('uri' in status)
-          cacheStatus(status, undefined, true)
+          cacheStatus(status, true)
 
         const index = prevItems.value.findIndex((i: any) => i.id === status.id)
         if (index >= 0)
@@ -45,7 +45,7 @@ export function usePaginator<T, P, U = T>(
 
       // TODO: update statuses
       s.on('status.update', (status) => {
-        cacheStatus(status, undefined, true)
+        cacheStatus(status, true)
 
         const data = items.value as mastodon.v1.Status[]
         const index = data.findIndex(s => s.id === status.id)

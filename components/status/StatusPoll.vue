@@ -34,7 +34,7 @@ async function vote(e: Event) {
   else
     poll.votersCount = (poll.votersCount || 0) + 1
 
-  cacheStatus({ ...status, poll }, undefined, true)
+  cacheStatus({ ...status, poll }, true)
 
   await client.v1.polls.vote(poll.id, { choices })
 }

@@ -17,7 +17,7 @@ if (process.dev && process.client)
   // eslint-disable-next-line no-console
   console.log({ cache })
 
-export function setCached(key: string, value: any, override = false) {
+function setCached(key: string, value: any, override = false) {
   if (override || !cache.has(key))
     cache.set(key, value)
 }
@@ -666,14 +666,12 @@ export function fetchAccountByHandle(str?: string, force = false): Promise<masto
   return promise
 }
 
-export function cacheStatus(status: mastodon.v1.Status, server = currentServer.value, override?: boolean) {
-  const userId = currentUser.value?.account.id
-  setCached(`${server}:${userId}:status:${status.id}`, status, override)
+export function cacheStatus(status: mastodon.v1.Status, override?: boolean) {
+  setCached(generateStatusIdCacheKeyAccessibleToCurrentUser(status.id), status, override)
 }
 
-export function removeCachedStatus(id: string, server = currentServer.value) {
-  const userId = currentUser.value?.account.id
-  removeCached(`${server}:${userId}:status:${id}`)
+export function removeCachedStatus(statusId: string) {
+  removeCached(generateStatusIdCacheKeyAccessibleToCurrentUser(statusId))
 }
 
 export function cacheAccount(account: mastodon.v1.Account, override?: boolean) {
