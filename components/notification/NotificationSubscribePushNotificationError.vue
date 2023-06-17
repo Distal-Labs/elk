@@ -45,7 +45,7 @@ const { modelValue } = defineModels<{
       </i18n-t>
     </p>
     <p py-2>
-      <NuxtLink font-bold text-primary href="https://github.com/Distal-Labs/elk" target="_blank" flex="~ row" items-center gap-x-2>
+      <NuxtLink font-bold text-primary href="https://github.com/Distal-Labs/elk/tree/release" target="_blank" flex="~ row" items-center gap-x-2>
         {{ $t('settings.notifications.push_notifications.subscription_error.repo_link') }}
         <span inline-block aria-hidden="true" i-ri:external-link-line class="rtl-flip" />
       </NuxtLink>

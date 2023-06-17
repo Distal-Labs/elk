@@ -95,7 +95,7 @@ function colorModeToggle() {
         </NuxtLink>
       </template>
       &middot;
-      <NuxtLink href="/fedified.com/@DataDrivenMD" target="_blank">
+      <NuxtLink href="/fedified.com/@contact" target="_blank">
         Mastodon
       </NuxtLink>
       &middot;
@@ -103,7 +103,7 @@ function colorModeToggle() {
         Discord
       </NuxtLink>
       &middot;
-      <NuxtLink href="https://github.com/Distal-Labs/elk" target="_blank" external>
+      <NuxtLink href="https://github.com/Distal-Labs/elk/tree/release" target="_blank" external>
         GitHub
       </NuxtLink>
     </div>

@@ -61,7 +61,7 @@ function handleShowCommit() {
     <SettingsItem
       text="Mastodon"
       icon="i-ri:mastodon-line"
-      to="/m.webtoo.ls/@elk"
+      to="/fedified.com/@contact"
       large target="_blank"
     />
     <SettingsItem
@@ -73,7 +73,7 @@ function handleShowCommit() {
     <SettingsItem
       text="GitHub"
       icon="i-ri:github-fill"
-      to="https://github.com/Distal-Labs/elk"
+      to="https://github.com/Distal-Labs/elk/tree/release"
       external large target="_blank"
     />
 
