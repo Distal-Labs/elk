@@ -24,10 +24,9 @@ function getTrendingCache(): FedifiedTrends {
   return trendsStorage.value
 }
 
-async function federateTrendingPosts(remotePost: mastodon.v1.Status) {
-  const acct = `${remotePost.account.username}@${remotePost.account.url.replace('https://', '').split('/')[0]}`
-  remotePost.account.acct = acct
-  return await fetchStatus(remotePost.uri, false, true)
+function federateTrendingPosts(remotePost: mastodon.v1.Status) {
+  normalizeAndCacheAuthoritativeStatus(remotePost, false)
+  return fetchStatus(remotePost.uri, false, true)
 }
 
 async function refreshTrendingPosts(force: boolean): Promise<mastodon.v1.Status[]> {
@@ -202,6 +201,22 @@ export async function initializeTrends() {
 
 function selectFeaturedTag(tagName: string) {
   featuredTagName.value = tagName
+}
+
+export function computeTagUsage(tagHistory: mastodon.v1.TagHistory[], maxDay?: number, metric = 'posts') {
+  if (tagHistory.length === 0)
+    return 0
+
+  const sliceOfTagHistory: mastodon.v1.TagHistory[] = (!maxDay) ? tagHistory : tagHistory.slice(0, maxDay)
+
+  const number = sliceOfTagHistory.reduce((total: number, item) => total + (Number(
+    (metric === 'posts') ? item.uses : item.accounts,
+  ) || 0), 0)
+
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    compactDisplay: 'short',
+  }).format(number)
 }
 
 export function useTrends() {

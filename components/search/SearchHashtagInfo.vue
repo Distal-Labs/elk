@@ -5,9 +5,7 @@ const { hashtag } = defineProps<{
   hashtag: mastodon.v1.Tag
 }>()
 
-const totalTrend = $computed(() =>
-  hashtag.history?.reduce((total: number, item) => total + (Number(item.accounts) || 0), 0),
-)
+const totalTrend = $computed(() => (hashtag.history) ? computeTagUsage(hashtag.history) : 0)
 </script>
 
 <template>
