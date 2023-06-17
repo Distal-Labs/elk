@@ -14,7 +14,7 @@ const emit = defineEmits<{
 }>()
 
 function totalTrend(tag: mastodon.v1.Tag) {
-  return tag.history?.reduce((total: number, item) => total + (Number(item.uses) || 0), 0)
+  return (tag.history) ? computeTagUsage(tag.history) : 0
 }
 
 function selectTrendingPosts() {
