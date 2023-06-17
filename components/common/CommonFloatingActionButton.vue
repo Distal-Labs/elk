@@ -60,20 +60,20 @@ const noUserVisual = computed(() => (isHydrated.value && props.userOnly && !curr
   >
     <CommonTooltip :disabled="!isMediumOrLargeScreen" :content="text" placement="right">
       <div
-        class="item"
-        flex justify-center gap4
-        w-fit h-fit aspect-ratio-1
-        py-0 px2 mx0 sm:mxa
-        bg-primary text-base rounded-full shadow="~ md text-secondary" w-48px h-48px
-        xl="items-center justify-start ml0 mr5 px5 w-auto aspect-ratio-0"
+        flex justify-items-center
+        w-fit h-fit aspect-ratio-1 rounded-full p2
+        sm="mxa"
+        bg-primary text-base shadow="~ lg text-secondary-light" w-48px h-48px
+
+        xl="aspect-ratio-0 rounded-full grid-cols-[1fr_auto] gap4 grid-items-center ml0 mr5 py1 px5 w-auto"
         transition-100
         elk-group-hover="bg-active text-base" group-focus-visible:ring="2 current"
       >
         <slot name="icon">
-          <div :class="icon" text-xl />
+          <div min-w-5 :class="icon" text-2xl />
         </slot>
         <slot>
-          <span block sm:hidden xl:block select-none>{{ isHydrated ? text : '&nbsp;' }}</span>
+          <span w-full block sm:hidden xl:block select-none>{{ isHydrated ? text : '&nbsp;' }}</span>
         </slot>
       </div>
     </CommonTooltip>
