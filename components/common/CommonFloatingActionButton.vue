@@ -6,9 +6,11 @@ const props = withDefaults(defineProps<{
   userOnly?: boolean
   command?: boolean
   replace?: boolean
+  disable?: boolean
 }>(), {
   userOnly: false,
   replace: false,
+  disable: false,
 })
 
 defineSlots<{
@@ -30,19 +32,19 @@ useCommand({
   },
 })
 
-let activeClass = $ref('text-primary')
+let activeClass = $ref('bg-primary text-base bg-transparent')
 onHydrated(async () => {
   // TODO: force NuxtLink to reevaluate, we now we are in this route though, so we should force it to active
   // we don't have currentServer defined until later
   activeClass = ''
   await nextTick()
-  activeClass = 'text-primary'
+  activeClass = 'bg-primary text-base bg-transparent'
 })
 
 // Optimize rendering for the common case of being logged in, only show visual feedback for disabled user-only items
 // when we know there is no user.
-const noUserDisable = computed(() => !isHydrated.value || (props.userOnly && !currentUser.value))
-const noUserVisual = computed(() => isHydrated.value && props.userOnly && !currentUser.value)
+const noUserDisable = computed(() => !isHydrated.value || props.disable || (props.userOnly && !currentUser.value))
+const noUserVisual = computed(() => (isHydrated.value && props.userOnly && !currentUser.value) || props.disable)
 </script>
 
 <template>
@@ -52,7 +54,6 @@ const noUserVisual = computed(() => isHydrated.value && props.userOnly && !curre
     :class="noUserVisual ? 'op25 pointer-events-none ' : ''"
     :active-class="activeClass"
     group focus:outline-none disabled:pointer-events-none
-    w-full py-1
     :tabindex="noUserDisable ? -1 : null"
     :replace="props.replace"
     @click="$scrollToTop"
@@ -62,9 +63,11 @@ const noUserVisual = computed(() => isHydrated.value && props.userOnly && !curre
         flex justify-items-center
         w-fit h-fit aspect-ratio-1 rounded-full p2
         sm="mxa"
+        bg-primary text-base shadow="~ lg text-secondary-light" w-48px h-48px
+
         xl="aspect-ratio-0 rounded-full grid-cols-[1fr_auto] gap4 grid-items-center ml0 mr5 py1 px5 w-auto"
         transition-100
-        elk-group-hover="bg-active" group-focus-visible:ring="2 current"
+        elk-group-hover="bg-active text-base" group-focus-visible:ring="2 current"
       >
         <slot name="icon">
           <div min-w-5 :class="icon" text-2xl />
@@ -76,3 +79,28 @@ const noUserVisual = computed(() => isHydrated.value && props.userOnly && !curre
     </CommonTooltip>
   </NuxtLink>
 </template>
+
+<style scoped>
+  .item {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  @media screen and ( max-height: 820px ) and ( min-width: 1280px ) {
+    .item {
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+    }
+  }
+  @media screen and ( max-height: 780px ) and ( min-width: 640px ) {
+    .item {
+      padding-top: 0.35rem;
+      padding-bottom: 0.35rem;
+    }
+  }
+  @media screen and ( max-height: 780px ) and ( min-width: 1280px ) {
+    .item {
+      padding-top: 0.05rem;
+      padding-bottom: 0.05rem;
+    }
+  }
+</style>

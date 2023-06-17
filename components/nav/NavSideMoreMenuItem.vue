@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
-  text?: string
+  text: string
   icon: string
   to: string | Record<string, string>
   userOnly?: boolean
@@ -10,11 +10,6 @@ const props = withDefaults(defineProps<{
   userOnly: false,
   replace: false,
 })
-
-defineSlots<{
-  icon: (props: {}) => void
-  default: (props: {}) => void
-}>()
 
 const router = useRouter()
 
@@ -42,36 +37,36 @@ onHydrated(async () => {
 // Optimize rendering for the common case of being logged in, only show visual feedback for disabled user-only items
 // when we know there is no user.
 const noUserDisable = computed(() => !isHydrated.value || (props.userOnly && !currentUser.value))
-const noUserVisual = computed(() => isHydrated.value && props.userOnly && !currentUser.value)
 </script>
 
 <template>
   <NuxtLink
     :to="to"
     :disabled="noUserDisable"
-    :class="noUserVisual ? 'op25 pointer-events-none ' : ''"
     :active-class="activeClass"
     group focus:outline-none disabled:pointer-events-none
-    w-full py-1
     :tabindex="noUserDisable ? -1 : null"
     :replace="props.replace"
     @click="$scrollToTop"
   >
-    <CommonTooltip :disabled="!isMediumOrLargeScreen" :content="text" placement="right">
+    <CommonTooltip :content="text" placement="right">
       <div
-        flex justify-items-center
-        w-fit h-fit aspect-ratio-1 rounded-full p2
-        sm="mxa"
-        xl="aspect-ratio-0 rounded-full grid-cols-[1fr_auto] gap4 grid-items-center ml0 mr5 py1 px5 w-auto"
+        class="item"
+        flex sm:justify-evenly gap4
+        w-content rounded-3
+        px2 mx3 sm:mxa
+        xl="items-center justify-start ml0 mr5 px5 w-full"
         transition-100
         elk-group-hover="bg-active" group-focus-visible:ring="2 current"
       >
-        <slot name="icon">
-          <div min-w-5 :class="icon" text-2xl />
-        </slot>
-        <slot>
-          <span w-full block sm:hidden xl:block select-none>{{ isHydrated ? text : '&nbsp;' }}</span>
-        </slot>
+        <CommonDropdownItem
+          is="button"
+          :text="text"
+          :icon="icon"
+          w-full
+          text-2xl
+          hover-bg-transparent
+        />
       </div>
     </CommonTooltip>
   </NuxtLink>

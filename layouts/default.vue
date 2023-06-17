@@ -70,18 +70,19 @@ const appContainerClass = computed(() => {
                 xl="w-full mr-0"
               />
               <NavSide
-                command flex-col flex-auto flex-basis-lg
+                command flex-col flex-auto flex-basis-lg justify-start
                 mt0 mb0
-                sm="w-80px min-h-10vh max-h-80vh"
-                xl="w-275px min-h-10vh max-h-80vh"
+                min-h-10vh h-100dvh
+                sm="w-80px min-h-60dvh"
+                xl="w-275px"
               />
               <!-- USER SIGN-IN -->
               <div shrink flex-basis-78px />
               <div
-                v-if="isHydrated" bg-base flex-grow flex-basis
+                v-if="isHydrated" bg-base flex-grow flex-basis-0
                 sm="w-70px min-h-70px"
-                xl="w-275px min-h-10vh max-h-80vh"
-                pb8 mb8
+                xl="w-275px min-h-10vh"
+                pb0 mb0 sticky bottom-0
               >
                 <div hidden xl="block" p0 m0>
                   <UserSignInEntry v-if="!currentUser" p0 m0 />
@@ -93,7 +94,7 @@ const appContainerClass = computed(() => {
                         class="item"
                         flex gap4
                         rounded-3
-                        sm="max-w-70px w-content justify-center mx0"
+                        sm="max-w-70px"
                         xl="items-center justify-start ml0 mr5 px5 w-auto"
                         transition-100
                         elk-group-hover="bg-active" group-focus-visible:ring="2 current"
@@ -102,7 +103,7 @@ const appContainerClass = computed(() => {
                       </div>
                     </CommonTooltip>
                   </div>
-                  <div hidden xl="block" p6 w-full>
+                  <div hidden xl="block" py-6 sticky bottom-0 w-full>
                     <UserPicker v-if="showUserPicker" />
                     <div v-else flex="~" items-center justify-between>
                       <NuxtLink
