@@ -24,10 +24,9 @@ function getTrendingCache(): FedifiedTrends {
   return trendsStorage.value
 }
 
-async function federateTrendingPosts(remotePost: mastodon.v1.Status) {
-  const acct = `${remotePost.account.username}@${remotePost.account.url.replace('https://', '').split('/')[0]}`
-  remotePost.account.acct = acct
-  return await fetchStatus(remotePost.uri, false, true)
+function federateTrendingPosts(remotePost: mastodon.v1.Status) {
+  normalizeAndCacheAuthoritativeStatus(remotePost, false)
+  return fetchStatus(remotePost.uri, false, true)
 }
 
 async function refreshTrendingPosts(force: boolean): Promise<mastodon.v1.Status[]> {

@@ -143,27 +143,38 @@ async function federateRemoteStatus(statusUri: string, force = false, enrich = f
   const cached: mastodon.v1.Status | Promise<mastodon.v1.Status> | undefined | null | number = cache.get(localStatusIdCacheKey, { allowStale: false, updateAgeOnGet: false })
   if (cached) {
     if (
-      !!cached
+      !force
+      && !!cached
       && !(typeof cached === 'number')
       && !(cached instanceof Promise)
       && (cached.uri === statusUri)
-      && !force
     ) {
-      return cached
+      return Promise.resolve(cached)
     }
     else if (cached instanceof Promise) {
       return cached
     }
     else if (typeof cached === 'number') {
-      if ([401, 403, 418].includes(cached))
-        console.error(`Current user is forbidden or lacks authorization to fetch status: ${statusUri}`)
-      if ([404].includes(cached))
-        console.error(`The requested status URI cannot be found: ${statusUri}`)
-      if ([429].includes(cached))
-        console.error('The request was rate-limited by the Mastodon server')
-      if ([500, 501, 503].includes(cached))
-        console.error('The Mastodon server is unresponsive')
-      return Promise.resolve(null)
+      if ([401, 403, 418].includes(cached)) {
+        if (process.dev)
+          console.error(`Current user is forbidden or lacks authorization to fetch status: ${statusUri}`)
+        return Promise.resolve(null)
+      }
+      if ([404].includes(cached) && !force) {
+        if (process.dev)
+          console.error(`The requested status URI cannot be found: ${statusUri}`)
+        return Promise.resolve(null)
+      }
+      if ([429].includes(cached)) {
+        if (process.dev)
+          console.error('The request was rate-limited by the Mastodon server')
+        return Promise.resolve(null)
+      }
+      if ([500, 501, 503].includes(cached) && !force) {
+        if (process.dev)
+          console.error('The Mastodon server is unresponsive')
+        return Promise.resolve(null)
+      }
     }
   }
 
@@ -175,10 +186,6 @@ async function federateRemoteStatus(statusUri: string, force = false, enrich = f
         cache.set(localStatusIdCacheKey, 404)
         return Promise.resolve(null)
       }
-
-      const splitUri = post.account.url.replace('https://', '').split('/@')
-      const accountWebfinger = `${splitUri[1]}@${splitUri[0]}`
-      post.account.acct = accountWebfinger
 
       // FOR PUBLIC statuses, get the real stats here
       if (enrich && post.visibility === 'public') {
@@ -194,15 +201,19 @@ async function federateRemoteStatus(statusUri: string, force = false, enrich = f
             federatedPost.reblogsCount = authoritativePost.reblogsCount
             federatedPost.repliesCount = authoritativePost.repliesCount
             federatedPost.favouritesCount = authoritativePost.favouritesCount
+
+            // Intentionally overriding cached value because this should be the most recent
+            cache.set(localStatusIdCacheKey, federatedPost)
+            return federatedPost
           }
-          // else {
-          //   if (process.dev)
-          //     // eslint-disable-next-line no-console
-          //     console.info(`Status was federated (visibility === ${federatedPost.visibility}): '${statusUri}'`)
-          // }
-          // if (process.dev)
-          //   // eslint-disable-next-line no-console
-          //   console.info('Remote Status was enriched with authoritative stats', federatedPost)
+          else if (process.dev) {
+            // eslint-disable-next-line no-console
+            console.debug(`Federated status lacks authoritative stats due to visibility directive ('${federatedPost.visibility}'): ${statusUri}`)
+          }
+
+          if (process.dev)
+            // eslint-disable-next-line no-console
+            console.debug('Remote Status was enriched with authoritative stats', federatedPost)
 
           // Intentionally overriding cached value because this should be the most recent
           cache.set(localStatusIdCacheKey, federatedPost)
@@ -227,18 +238,14 @@ async function federateRemoteStatus(statusUri: string, force = false, enrich = f
 export async function fetchStatus(statusId: string, force = false, enrich = false): Promise<mastodon.v1.Status | null> {
   if (cache.has(`stop:${statusId}`)) {
     if (process.dev)
-      // eslint-disable-next-line no-console
-      console.debug(`Skipping further processing for invalid status Id: ${statusId}`)
+
+      console.warn(`Skipping further processing for invalid status Id: ${statusId}`)
     return Promise.resolve(null)
   }
 
   // Handle scenario where the value of statusId is actually an URI
-  if (statusId.startsWith('h')) {
-    if (process.dev)
-      // eslint-disable-next-line no-console
-      console.info(`statusId parameter was passed an URI, so redirecting resolution request: ${statusId}`)
-    return federateRemoteStatus(statusId, force)
-  }
+  if (statusId.startsWith('h'))
+    return federateRemoteStatus(statusId, force, enrich)
 
   // handle invalid statusId
   if ((statusId.search(/^\d+$/) === -1)) {
@@ -250,29 +257,49 @@ export async function fetchStatus(statusId: string, force = false, enrich = fals
   const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(statusId)
   const cached: mastodon.v1.Status | Promise<mastodon.v1.Status> | undefined | null = cache.get(localStatusIdCacheKey, { allowStale: false, updateAgeOnGet: false })
   if (cached) {
-    // avoid race condition by returning the existing promise instead of restarting the chain of events all over again
-    if (cached instanceof Promise)
-      return cached
-    if (typeof cached === 'number') {
-      // wait for the cached value to expire before trying again
-      if ([401, 403, 404, 418, 429, 500, 501, 503].includes(cached))
-        return Promise.resolve(null)
+    if (
+      !force
+      && !!cached
+      && !(typeof cached === 'number')
+      && !(cached instanceof Promise)
+      && (cached.id === statusId)
+    ) {
+      return Promise.resolve(cached)
     }
-    else if (cached.id === statusId) {
-      // if we don't care about authoritative values then return cached value
-      if (!force)
-        return cached
+    else if (cached instanceof Promise) {
+      return cached
+    }
+    else if (typeof cached === 'number') {
+      if ([401, 403, 418].includes(cached)) {
+        if (process.dev)
+          console.error(`Current user is forbidden or lacks authorization to fetch status: ${statusId}`)
+        return Promise.resolve(null)
+      }
+      if ([404].includes(cached) && !force) {
+        if (process.dev)
+          console.error(`The requested status ID cannot be found: ${statusId}`)
+        return Promise.resolve(null)
+      }
+      if ([429].includes(cached)) {
+        if (process.dev)
+          console.error('The request was rate-limited by the Mastodon server')
+        return Promise.resolve(null)
+      }
+      if ([500, 501, 503].includes(cached) && !force) {
+        if (process.dev)
+          console.error('The Mastodon server is unresponsive')
+        return Promise.resolve(null)
+      }
     }
   }
 
   const promise = useMastoClient().v1.statuses.fetch(statusId)
     .then(async (post) => {
-      const splitUri = post.account.url.replace('https://', '').split('/@')
-      const accountWebfinger = `${splitUri[1]}@${splitUri[0]}`
-      post.account.acct = accountWebfinger
-
       // the current server is the authoritative server
       if (post.uri.startsWith(`https://${currentServer.value}`)) {
+        const accountWebfinger = extractAccountWebfinger(post.uri)!
+        post.account.acct = accountWebfinger
+
         cache.set(localStatusIdCacheKey, post)
         // Intentionally overriding cached value because this should be the most recent
         cache.set(generateAuthoritativeStatusCacheKey(post.uri), post)
@@ -354,7 +381,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
   if (authoritativeServer === currentServer.value) {
     if (process.dev)
       // eslint-disable-next-line no-console
-      console.info(`Local domain is authoritative, so redirecting resolution request for status id: ${authoritativeStatusId}`)
+      console.debug(`Local domain is authoritative, so redirecting resolution request for status id: ${authoritativeStatusId}`)
 
     return fetchStatus(authoritativeStatusId)
   }
@@ -363,27 +390,38 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
   const cachedAuthoritative: mastodon.v1.Status | Promise<mastodon.v1.Status> | undefined | null | number = cache.get(authoritativeStatusCacheKey, { allowStale: false, updateAgeOnGet: false })
   if (cachedAuthoritative) {
     if (
-      !!cachedAuthoritative
+      !force
+      && !!cachedAuthoritative
       && !(typeof cachedAuthoritative === 'number')
       && !(cachedAuthoritative instanceof Promise)
       && (cachedAuthoritative.uri === statusUri)
-      && !force
     ) {
-      return cachedAuthoritative
+      return Promise.resolve(cachedAuthoritative)
     }
     else if (cachedAuthoritative instanceof Promise) {
       return cachedAuthoritative
     }
     else if (typeof cachedAuthoritative === 'number') {
-      if ([401, 403, 418].includes(cachedAuthoritative))
-        console.error(`Current user is forbidden or lacks authorization to fetch status: ${statusUri}`)
-      if ([404].includes(cachedAuthoritative))
-        console.error(`The requested status URI cannot be found: ${statusUri}`)
-      if ([429].includes(cachedAuthoritative))
-        console.error('The request was rate-limited by the Mastodon server')
-      if ([500, 501, 503].includes(cachedAuthoritative))
-        console.error('The Mastodon server is unresponsive')
-      return Promise.resolve(null)
+      if ([401, 403, 418].includes(cachedAuthoritative)) {
+        if (process.dev)
+          console.error(`Current user is forbidden or lacks authorization to fetch status: ${statusUri}`)
+        return Promise.resolve(null)
+      }
+      if ([404].includes(cachedAuthoritative) && !force) {
+        if (process.dev)
+          console.error(`The requested status URI cannot be found: ${statusUri}`)
+        return Promise.resolve(null)
+      }
+      if ([429].includes(cachedAuthoritative)) {
+        if (process.dev)
+          console.error('The request was rate-limited by the Mastodon server')
+        return Promise.resolve(null)
+      }
+      if ([500, 501, 503].includes(cachedAuthoritative) && !force) {
+        if (process.dev)
+          console.error('The Mastodon server is unresponsive')
+        return Promise.resolve(null)
+      }
     }
   }
 
@@ -408,15 +446,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
         return Promise.resolve(null)
       }
 
-      const post = changeKeysToCamelCase(parsedPost) as mastodon.v1.Status
-
-      const accountWebfinger = extractAccountWebfinger(post.account.url)!
-
-      post.account.acct = accountWebfinger
-
-      cache.set(authoritativeStatusCacheKey, post)
-
-      return post
+      return normalizeAndCacheAuthoritativeStatus(parsedPost, true)
     })
     .catch((e) => {
       console.error(`Encountered error while fetching authoritative Status using URI '${statusUri}' | ${(e as Error).message}`)
@@ -426,6 +456,18 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
   // Intentionally overriding cached value because this should be the most recent update
   cache.set(authoritativeStatusCacheKey, promise)
   return promise
+}
+
+export function normalizeAndCacheAuthoritativeStatus(status: Partial<mastodon.v1.Status> | mastodon.v1.Status, force = true) {
+  const post = changeKeysToCamelCase(status) as mastodon.v1.Status
+
+  const authoritativeStatusCacheKey = generateAuthoritativeStatusCacheKey(post.uri)
+
+  post.account.acct = extractAccountWebfinger(post.account.url)!
+
+  setCached(authoritativeStatusCacheKey, post, force)
+
+  return post
 }
 
 function federateRemoteAccount(webfingerOrUriOrUrl: string, force = false): Promise<mastodon.v1.Account | null> {
@@ -451,11 +493,11 @@ function federateRemoteAccount(webfingerOrUriOrUrl: string, force = false): Prom
 
   if (cachedAuthoritative) {
     if (
-      !!cachedAuthoritative
+      !force
+      && !!cachedAuthoritative
       && !(typeof cachedAuthoritative === 'number')
       && !(cachedAuthoritative instanceof Promise)
       && (cachedAuthoritative.acct === accountWebfinger)
-      && !force
     ) {
       return Promise.resolve(cachedAuthoritative)
     }
@@ -465,28 +507,21 @@ function federateRemoteAccount(webfingerOrUriOrUrl: string, force = false): Prom
     else if (typeof cachedAuthoritative === 'number') {
       if ([401, 403, 418].includes(cachedAuthoritative)) {
         if (process.dev)
-
           console.error(`Current user is forbidden or lacks authorization to fetch account: ${webfingerOrUriOrUrl}`)
         return Promise.resolve(null)
       }
-
       if ([404].includes(cachedAuthoritative) && !force) {
         if (process.dev)
-
           console.error(`The requested account Webfinger address cannot be found: ${webfingerOrUriOrUrl}`)
         return Promise.resolve(null)
       }
-
       if ([429].includes(cachedAuthoritative)) {
         if (process.dev)
-
           console.error('The request was rate-limited by the Mastodon server')
         return Promise.resolve(null)
       }
-
       if ([500, 501, 503].includes(cachedAuthoritative) && !force) {
         if (process.dev)
-
           console.error('The Mastodon server is unresponsive')
         return Promise.resolve(null)
       }
@@ -527,46 +562,40 @@ export function fetchAccountById(accountId?: string | null, force = false): Prom
   const cachedAccountLocallyAccessibleToCurrentUser: mastodon.v1.Account | Promise<mastodon.v1.Account> | undefined | null | number = cache.get(cacheKeyAccountId)
   if (cachedAccountLocallyAccessibleToCurrentUser) {
     // avoid race condition by returning the existing promise instead of restarting the chain of events all over again
+    if (
+      !force
+      && !!cachedAccountLocallyAccessibleToCurrentUser
+      && !(typeof cachedAccountLocallyAccessibleToCurrentUser === 'number')
+      && !(cachedAccountLocallyAccessibleToCurrentUser instanceof Promise)
+      && (cachedAccountLocallyAccessibleToCurrentUser.id === accountId)
+      && cachedAccountLocallyAccessibleToCurrentUser.url.includes(currentServer.value)
+    ) {
+      // if we already cached the authoritative value, then return that
+      return Promise.resolve(cachedAccountLocallyAccessibleToCurrentUser)
+    }
     if (cachedAccountLocallyAccessibleToCurrentUser instanceof Promise)
       return cachedAccountLocallyAccessibleToCurrentUser
     if (typeof cachedAccountLocallyAccessibleToCurrentUser === 'number') {
       if ([401, 403, 418].includes(cachedAccountLocallyAccessibleToCurrentUser)) {
         if (process.dev)
-
           console.error(`Current user is forbidden or lacks authorization to fetch account id: ${accountId}`)
         return Promise.resolve(null)
       }
-
       if ([404].includes(cachedAccountLocallyAccessibleToCurrentUser) && !force) {
         if (process.dev)
-
           console.error(`The requested account id cannot be found: ${accountId}`)
         return Promise.resolve(null)
       }
-
       if ([429].includes(cachedAccountLocallyAccessibleToCurrentUser)) {
         if (process.dev)
-
           console.error(`Rate-limiting interrupted request for account id: ${accountId}`)
         return Promise.resolve(null)
       }
-
       if ([500, 501, 503].includes(cachedAccountLocallyAccessibleToCurrentUser) && !force) {
         if (process.dev)
-
           console.error(`Unresponsive Mastodon server encountered while fetching account id: ${accountId}`)
         return Promise.resolve(null)
       }
-    }
-
-    if (
-      (typeof cachedAccountLocallyAccessibleToCurrentUser !== 'number')
-      && (cachedAccountLocallyAccessibleToCurrentUser.id === accountId)
-      && !force
-      && cachedAccountLocallyAccessibleToCurrentUser.url.includes(currentServer.value)
-    ) {
-      // if we already cached the authoritative value, then return that
-      return Promise.resolve(cachedAccountLocallyAccessibleToCurrentUser)
     }
   }
 
