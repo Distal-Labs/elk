@@ -6,13 +6,13 @@ export function usePaginator<T, P, U = T>(
   _paginator: Paginator<T[], P>,
   stream: Ref<Promise<WsEvents> | undefined>,
   eventType: 'notification' | 'update' = 'update',
-  preprocess: (items: (T | U)[]) => U[] = items => items as unknown as U[],
+  preprocess: (items: (T | U)[]) => U[] | Promise<U[]> = items => items as unknown as U[] | Promise<U[]>,
   buffer = 10,
 ) {
   // called `next` method will mutate the internal state of the variable,
   // and we need its initial state after HMR
   // so clone it
-  const paginator = _paginator.clone()
+  const paginator = _paginator /// .clone()
 
   const state = ref<PaginatorState>(isHydrated.value ? 'idle' : 'loading')
   const items = ref<U[]>([])
@@ -26,21 +26,34 @@ export function usePaginator<T, P, U = T>(
   const deactivated = useDeactivated()
 
   async function update() {
-    (items.value as U[]).unshift(...preprocess(prevItems.value as T[]))
+    const preprocessedItems = await preprocess(prevItems.value as T[]);
+    (items.value as U[]).unshift(...preprocessedItems)
     prevItems.value = []
   }
 
   watch(stream, (stream) => {
-    stream?.then((s) => {
-      s.on(eventType, (status) => {
-        if ('uri' in status)
-          cacheStatus(status, true)
+    stream?.then((s: WsEvents) => {
+      s.on(eventType, async (wsEvent) => {
+        if ('uri' in wsEvent) {
+          try {
+            const status = await cacheStatus(wsEvent, true)
+            const index = prevItems.value.findIndex((i: any) => i.id === status.id)
+            if (index >= 0)
+              prevItems.value.splice(index, 1)
 
-        const index = prevItems.value.findIndex((i: any) => i.id === status.id)
-        if (index >= 0)
-          prevItems.value.splice(index, 1)
+            prevItems.value.unshift(status as any)
+          }
+          catch (e) {
+            console.error((e as Error).message)
+          }
+        }
+        else {
+          const index = prevItems.value.findIndex((i: any) => i.id === wsEvent.id)
+          if (index >= 0)
+            prevItems.value.splice(index, 1)
 
-        prevItems.value.unshift(status as any)
+          prevItems.value.unshift(wsEvent as any)
+        }
       })
 
       // TODO: update statuses
@@ -73,17 +86,18 @@ export function usePaginator<T, P, U = T>(
       const result = await paginator.next()
 
       if (!result.done && result.value.length) {
-        const preprocessedItems = preprocess([...nextItems.value, ...result.value] as (U | T)[])
-        const itemsToShowCount
-          = preprocessedItems.length <= buffer
-            ? preprocessedItems.length
-            : preprocessedItems.length - buffer
-        ;(nextItems.value as U[]) = preprocessedItems.slice(itemsToShowCount)
-        ;(items.value as U[]).push(...preprocessedItems.slice(0, itemsToShowCount))
+        const preprocessedItems = await preprocess([...nextItems.value, ...result.value] as (U | T)[])
+
+        const itemsToShowCount = (preprocessedItems.length <= buffer) ? preprocessedItems.length : (preprocessedItems.length - buffer);
+
+        (nextItems.value as U[]) = preprocessedItems.slice(itemsToShowCount);
+
+        (items.value as U[]).push(...preprocessedItems.slice(0, itemsToShowCount))
         state.value = 'idle'
       }
       else {
-        items.value.push(...nextItems.value)
+        const preprocessedItems = await preprocess(nextItems.value as (U | T)[]);
+        (items.value as U[]).push(...preprocessedItems)
         nextItems.value = []
         state.value = 'done'
       }

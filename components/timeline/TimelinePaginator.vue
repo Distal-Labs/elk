@@ -9,7 +9,7 @@ const { paginator, stream, account, buffer = 10, endMessage } = defineProps<{
   stream?: Promise<WsEvents>
   context?: mastodon.v2.FilterContext
   account?: mastodon.v1.Account
-  preprocess?: (items: mastodon.v1.Status[]) => mastodon.v1.Status[]
+  preprocess?: (items: mastodon.v1.Status[]) => mastodon.v1.Status[] | Promise<mastodon.v1.Status[]>
   buffer?: number
   endMessage?: boolean | string
 }>()

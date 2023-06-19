@@ -19,7 +19,7 @@ const {
   virtualScroller?: boolean
   stream?: Promise<WsEvents>
   eventType?: 'notification' | 'update'
-  preprocess?: (items: (U | T)[]) => U[]
+  preprocess?: (items: (U | T)[]) => U[] | Promise<U[]>
   endMessage?: boolean | string
 }>()
 

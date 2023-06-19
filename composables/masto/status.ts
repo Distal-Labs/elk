@@ -35,23 +35,40 @@ export function useStatusActions(props: StatusActionsProps) {
     const prevCount = countField ? status[countField] : undefined
 
     isLoading[action] = true
-    const isCancel = status[action]
-    fetchNewStatus().then((newStatus) => {
-      // when the action is cancelled, the count is not updated highly likely (if they're the same)
-      // issue of Mastodon API
-      if (isCancel && countField && prevCount === newStatus[countField])
-        newStatus[countField] -= 1
 
-      Object.assign(status, newStatus)
-      cacheStatus(newStatus, true)
+    const isCancel = status[action]
+
+    fetchNewStatus().then(async (responseStatus) => {
+      try {
+        const newStatus = await cacheStatus(responseStatus, true)
+        // when the action is cancelled, the count is not updated highly likely (if they're the same)
+        // issue of Mastodon API
+        if (isCancel && countField) {
+          if (prevCount === newStatus[countField])
+            newStatus[countField] -= 1
+
+          if (status.reblog && newStatus.reblog && status.reblog[countField] === newStatus.reblog[countField])
+            newStatus.reblog[countField] -= 1
+        }
+
+        Object.assign(status, newStatus)
+      }
+      catch (e) {
+        console.error((e as Error).message)
+        Object.assign(status, responseStatus)
+      }
     }).finally(() => {
       isLoading[action] = false
     })
     // Optimistic update
     status[action] = !status[action]
-    cacheStatus(status, true)
-    if (countField)
+
+    if (countField) {
       status[countField] += status[action] ? 1 : -1
+      if (status.reblog)
+        status.reblog[countField] += status.reblog[action] ? 1 : -1
+    }
+    // cacheStatus(status, false)
   }
 
   const canReblog = $computed(() =>
@@ -61,10 +78,11 @@ export function useStatusActions(props: StatusActionsProps) {
 
   const toggleReblog = () => toggleStatusAction(
     'reblogged',
-    () => client.v1.statuses[status.reblogged ? 'unreblog' : 'reblog'](status.id).then((res) => {
-      if (status.reblogged)
-      // returns the original status
+    () => client.v1.statuses[status.reblogged ? 'unreblog' : 'reblog'](status.id).then(async (res) => {
+      if (status.reblogged) {
+        // returns the original status
         return res.reblog!
+      }
       return res
     }),
     'reblogsCount',

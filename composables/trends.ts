@@ -26,7 +26,7 @@ function getTrendingCache(): FedifiedTrends {
 
 function federateTrendingPosts(remotePost: mastodon.v1.Status) {
   normalizeAndCacheAuthoritativeStatus(remotePost, false)
-  return fetchStatus(remotePost.uri, false, true)
+  return fetchStatus(remotePost.uri)
 }
 
 async function refreshTrendingPosts(force: boolean): Promise<mastodon.v1.Status[]> {

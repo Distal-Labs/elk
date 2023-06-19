@@ -7,7 +7,7 @@ const { isLoading, featuredTagName } = defineProps<{
 }>()
 
 function reorderAndFilter(items: mastodon.v1.Status[]) {
-  return reorderedTimeline(items, 'home')
+  return reorderedTimeline(items, 'public')
 }
 
 const paginator = useMastoClient().v1.timelines.listHashtag(featuredTagName ?? '')

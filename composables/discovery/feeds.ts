@@ -140,7 +140,7 @@ function applyFeed<T extends mastodon.v1.Status>(items: T[], feed: Feed<T>): T[]
 
 const DEFAULT__PUBLIC_TIMELINE_PREFERENCES: FeedOptions = {
   // Account attributes
-  alwaysLargeAccounts: true,
+  alwaysLargeAccounts: false,
   onlyFamiliarAccounts: false,
   excludeBots: true,
   excludeLockedAccounts: true,
@@ -157,15 +157,15 @@ const DEFAULT__PUBLIC_TIMELINE_PREFERENCES: FeedOptions = {
 
 const DEFAULT__CACHING_PREFERENCES: FeedOptions = {
   // Account attributes
-  alwaysLargeAccounts: true,
+  alwaysLargeAccounts: false,
   onlyFamiliarAccounts: false,
   excludeBots: true,
-  excludeLockedAccounts: true,
+  excludeLockedAccounts: false,
   excludeNewAccounts: true,
   excludeSpammyAccounts: true,
   // Content attributes
   onlyPreferredLanguage: false,
-  excludeBoosts: true,
+  excludeBoosts: false,
   excludeCrossposts: true,
   excludeBirdsite: true,
   excludeNSFW: true,
@@ -174,19 +174,19 @@ const DEFAULT__CACHING_PREFERENCES: FeedOptions = {
 
 const DEFAULT__ENRICHMENT_PREFERENCES: FeedOptions = {
   // Account attributes
-  alwaysLargeAccounts: true,
+  alwaysLargeAccounts: false,
   onlyFamiliarAccounts: false,
-  excludeBots: true,
+  excludeBots: false,
   excludeLockedAccounts: true,
   excludeNewAccounts: true,
   excludeSpammyAccounts: true,
   // Content attributes
   onlyPreferredLanguage: false,
-  excludeBoosts: true,
+  excludeBoosts: false,
   excludeCrossposts: true,
   excludeBirdsite: true,
   excludeNSFW: true,
-  excludeReplies: true,
+  excludeReplies: false,
 }
 
 const publicTimelineFeed = makeFeed([DEFAULT__PUBLIC_TIMELINE_PREFERENCES])
@@ -195,6 +195,7 @@ const enrichedFeed = makeFeed([DEFAULT__ENRICHMENT_PREFERENCES])
 
 export function useFeeds() {
   return {
+    shouldBeInGlobal: (item: mastodon.v1.Status) => shouldBeInFeed(item, publicTimelineFeed),
     shouldBeCached: (item: mastodon.v1.Status) => shouldBeInFeed(item, cachedFeed),
     shouldBeEnriched: (item: mastodon.v1.Status) => shouldBeInFeed(item, enrichedFeed),
     applyPublicTimelineFeed: (items: mastodon.v1.Status[]) => applyFeed(items, publicTimelineFeed),

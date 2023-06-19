@@ -1,7 +1,10 @@
 import type { mastodon } from 'masto'
+import { useFeeds } from './discovery/feeds'
+import { enrichAndCacheStatus } from './cache'
 
 const maxDistance = 10
 const maxSteps = 1000
+const { applyPublicTimelineFeed, shouldBeCached, shouldBeEnriched } = useFeeds()
 
 // Checks if (b) is a reply to (a)
 function areStatusesConsecutive(a: mastodon.v1.Status, b: mastodon.v1.Status) {
@@ -9,39 +12,53 @@ function areStatusesConsecutive(a: mastodon.v1.Status, b: mastodon.v1.Status) {
   return !!inReplyToId && (inReplyToId === a.reblog?.id || inReplyToId === a.id)
 }
 
-function removeFilteredItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext, applyExtraFilters: boolean): mastodon.v1.Status[] {
+function removeFilteredItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext): mastodon.v1.Status[] {
   const isStrict = (filter: mastodon.v1.FilterResult) => filter.filter.filterAction === 'hide' && filter.filter.context.includes(context)
-  const isFiltered = (item: mastodon.v1.Status) => (item.account.id === currentUser.value?.account.id) || !item.filtered?.find(isStrict)
+  const isFiltered = (item: mastodon.v1.Status) => (!item.reblog && item.account.id === currentUser.value?.account.id) || !item.filtered?.find(isStrict)
   const isReblogFiltered = (item: mastodon.v1.Status) => !item.reblog?.filtered?.find(isStrict)
-  if (applyExtraFilters) {
-    const isKeptInFederated = (item: mastodon.v1.Status) => (item.account.bot !== true) // Remove bots
-    // Remove low-yield accounts
-    && (item.account.displayName.includes('nuop') !== true)
-    && (item.account.followersCount >= 100)
-    // Remove accounts that do not want to be featured
-    && (item.account.locked !== true)
-    && (item.account.discoverable !== false)
-    // filter by language
-    && (item.language === 'en')
-    // Remove NSFW content
-    && (item.spoilerText?.toLowerCase()?.includes('nsfw') !== true)
-    && (item.spoilerText?.toLowerCase()?.includes('nudity') !== true)
-    && (item.content?.toLowerCase()?.includes('nsfw') !== true)
-    && (item.content?.toLowerCase()?.includes('porn') !== true)
-    // Remove Twitter cross-posts
-    && (item.content?.toLowerCase()?.includes('twitter.com') !== true)
-    // Remove replies
-    && ((item.inReplyToId === null) || (item.inReplyToId === undefined))
+  if (context === 'public')
+    return applyPublicTimelineFeed([...items].filter(isFiltered).filter(isReblogFiltered))
 
-    return [...items].filter(isFiltered).filter(isReblogFiltered).filter(isKeptInFederated)
-  }
   return [...items].filter(isFiltered).filter(isReblogFiltered)
 }
 
-export function reorderedTimeline(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext = 'public', applyExtraFilters = false) {
+async function cacheItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext): Promise<mastodon.v1.Status[]> {
+  const results: mastodon.v1.Status[] = []
+
+  await Promise.allSettled(items.map(async (item) => {
+    if ((context === 'home') && shouldBeEnriched(item)) {
+      try {
+        const enrichedAndCachedItem = await enrichAndCacheStatus(item)
+        results.push(enrichedAndCachedItem)
+      }
+      catch (e) {
+        console.error('Unable to cache status:', (e as Error).message)
+        results.push(item)
+      }
+    }
+    else if (shouldBeCached(item)) {
+      try {
+        const cachedItem = await cacheStatus(item)
+        results.push(cachedItem)
+      }
+      catch (e) {
+        console.error('Unable to cache status:', (e as Error).message)
+        results.push(item)
+      }
+    }
+    else {
+      results.push(item)
+    }
+  }))
+
+  return results
+}
+
+export async function reorderedTimeline(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext) {
   let steps = 0
 
-  const newItems = removeFilteredItems(items, context, applyExtraFilters)
+  const filteredItems = removeFilteredItems(items, context)
+  const newItems = await cacheItems(filteredItems, context)
 
   for (let i = newItems.length - 1; i > 0; i--) {
     for (let k = 1; k <= maxDistance && i - k >= 0; k++) {

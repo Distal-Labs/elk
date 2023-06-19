@@ -1,5 +1,8 @@
 import { LRUCache } from 'lru-cache'
 import type { mastodon } from 'masto'
+import { useFeeds } from './discovery/feeds'
+
+const { shouldBeEnriched } = useFeeds()
 
 // expire in an hour
 const cache = new LRUCache<string, any>({
@@ -114,7 +117,11 @@ function generateStatusIdCacheKeyAccessibleToCurrentUser(statusId: string) {
   return `${currentServer.value}:${currentUser.value?.account.id}:status:${statusId}`
 }
 
-async function federateRemoteStatus(statusUri: string, force = false, enrich = false): Promise<mastodon.v1.Status | null> {
+function generateNotificationIdCacheKey(notificationId: string) {
+  return `${currentServer.value}:${currentUser.value?.account?.id}:notification:${notificationId}`
+}
+
+async function federateRemoteStatus(statusUri: string, force = false): Promise<mastodon.v1.Status | null> {
   if (cache.has(`stop:${statusUri}`)) {
     if (process.dev)
       // eslint-disable-next-line no-console
@@ -149,9 +156,11 @@ async function federateRemoteStatus(statusUri: string, force = false, enrich = f
       && !(cached instanceof Promise)
       && (cached.uri === statusUri)
     ) {
-      return Promise.resolve(cached)
+      return cacheStatus(cached, force)
     }
     else if (cached instanceof Promise) {
+      if (process.dev)
+        console.warn('Returning promise')
       return cached
     }
     else if (typeof cached === 'number') {
@@ -184,68 +193,30 @@ async function federateRemoteStatus(statusUri: string, force = false, enrich = f
       if (!post) {
         console.error(`Status could not be federated, perhaps it no longer exists: '${statusUri}'`)
         cache.set(localStatusIdCacheKey, 404)
-        return Promise.resolve(null)
+        return null
       }
 
-      // FOR PUBLIC statuses, get the real stats here
-      if (enrich && post.visibility === 'public') {
-        try {
-          const authoritativePost = await fetchAuthoritativeStatus(statusUri, force)
-          const federatedPost: mastodon.v1.Status = post
-
-          if (
-            !!authoritativePost
-            && (federatedPost.id !== authoritativePost.id)
-            && (federatedPost.uri === authoritativePost.uri)
-          ) {
-            federatedPost.reblogsCount = authoritativePost.reblogsCount
-            federatedPost.repliesCount = authoritativePost.repliesCount
-            federatedPost.favouritesCount = authoritativePost.favouritesCount
-
-            // Intentionally overriding cached value because this should be the most recent
-            cache.set(localStatusIdCacheKey, federatedPost)
-            return federatedPost
-          }
-          else if (process.dev) {
-            // eslint-disable-next-line no-console
-            console.debug(`Federated status lacks authoritative stats due to visibility directive ('${federatedPost.visibility}'): ${statusUri}`)
-          }
-
-          if (process.dev)
-            // eslint-disable-next-line no-console
-            console.debug('Remote Status was enriched with authoritative stats', federatedPost)
-
-          // Intentionally overriding cached value because this should be the most recent
-          cache.set(localStatusIdCacheKey, federatedPost)
-          return federatedPost
-        }
-        catch (e) {
-          console.error(`Status was retrieved from local DB but authoritative stats could not be fetched: '${post.uri}'`)
-        }
-      }
-      cache.set(localStatusIdCacheKey, post)
-      return post
+      return cacheStatus(post, force)
     })
     .catch((e) => {
       console.error(`Encountered error while federating status using URI '${statusUri}' | ${(e as Error)}`)
       cache.set(localStatusIdCacheKey, null)
-      return Promise.resolve(null)
+      return null
     })
   cache.set(localStatusIdCacheKey, promise)
   return promise
 }
 
-export async function fetchStatus(statusId: string, force = false, enrich = false): Promise<mastodon.v1.Status | null> {
+export async function fetchStatus(statusId: string, force = false): Promise<mastodon.v1.Status | null> {
   if (cache.has(`stop:${statusId}`)) {
     if (process.dev)
-
       console.warn(`Skipping further processing for invalid status Id: ${statusId}`)
     return Promise.resolve(null)
   }
 
   // Handle scenario where the value of statusId is actually an URI
   if (statusId.startsWith('h'))
-    return federateRemoteStatus(statusId, force, enrich)
+    return federateRemoteStatus(statusId, force)
 
   // handle invalid statusId
   if ((statusId.search(/^\d+$/) === -1)) {
@@ -262,11 +233,14 @@ export async function fetchStatus(statusId: string, force = false, enrich = fals
       && !!cached
       && !(typeof cached === 'number')
       && !(cached instanceof Promise)
+      && !(cached.reblog && !cached.reblog.account.url.includes(currentServer.value))
       && (cached.id === statusId)
     ) {
       return Promise.resolve(cached)
     }
     else if (cached instanceof Promise) {
+      if (process.dev)
+        console.warn('Returning promise')
       return cached
     }
     else if (typeof cached === 'number') {
@@ -296,7 +270,7 @@ export async function fetchStatus(statusId: string, force = false, enrich = fals
   const promise = useMastoClient().v1.statuses.fetch(statusId)
     .then(async (post) => {
       // the current server is the authoritative server
-      if (post.uri.startsWith(`https://${currentServer.value}`)) {
+      if (!post.reblog && post.uri.startsWith(`https://${currentServer.value}`)) {
         const accountWebfinger = extractAccountWebfinger(post.uri)!
         post.account.acct = accountWebfinger
 
@@ -306,46 +280,7 @@ export async function fetchStatus(statusId: string, force = false, enrich = fals
         return post
       }
 
-      // FOR PUBLIC statuses, get the real stats here
-      if (enrich && post.visibility === 'public') {
-        try {
-          const authoritativePost = await fetchAuthoritativeStatus(post.uri, force)
-          const fetchedOrFederatedPost = post
-
-          if (
-            !!authoritativePost
-            && (fetchedOrFederatedPost.id !== authoritativePost.id)
-            && (fetchedOrFederatedPost.uri === authoritativePost.uri)
-          ) {
-            fetchedOrFederatedPost.reblogsCount = authoritativePost.reblogsCount
-            fetchedOrFederatedPost.repliesCount = authoritativePost.repliesCount
-            fetchedOrFederatedPost.favouritesCount = authoritativePost.favouritesCount
-
-            if (process.dev)
-              // eslint-disable-next-line no-console
-              console.info('Remote Status was enriched with authoritative stats', fetchedOrFederatedPost)
-
-            cache.set(localStatusIdCacheKey, fetchedOrFederatedPost)
-            return fetchedOrFederatedPost
-          }
-
-          // if (process.dev)
-          //   // eslint-disable-next-line no-console
-          //   console.info(`Status was retrieved from local DB (visibility === ${fetchedOrFederatedPost.visibility}): '${fetchedOrFederatedPost.url}'`, fetchedOrFederatedPost, authoritativePost)
-
-          // Intentionally overriding cached value because this should be the most recent
-          cache.set(localStatusIdCacheKey, fetchedOrFederatedPost)
-          return fetchedOrFederatedPost
-        }
-        catch (e) {
-          console.error(`Status was retrieved from local DB but authoritative stats could not be fetched: '${post.uri}'`)
-          cache.set(localStatusIdCacheKey, post)
-          return post
-        }
-      }
-
-      cache.set(localStatusIdCacheKey, post)
-      return post
+      return cacheStatus(post, force)
     })
   cache.set(localStatusIdCacheKey, promise)
   return promise
@@ -399,6 +334,8 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
       return Promise.resolve(cachedAuthoritative)
     }
     else if (cachedAuthoritative instanceof Promise) {
+      if (process.dev)
+        console.warn('Returning promise')
       return cachedAuthoritative
     }
     else if (typeof cachedAuthoritative === 'number') {
@@ -435,7 +372,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
       if (res.status !== 200) {
         console.error(`Authoritative Status could not be fetched: '${statusUri}'`)
         cache.set(authoritativeStatusCacheKey, res.status)
-        return Promise.resolve(null)
+        return null
       }
       return res.json() as Promise<Partial<mastodon.v1.Status> | mastodon.v1.Status>
     })
@@ -443,7 +380,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
       if (!parsedPost) {
         console.error(`Authoritative Status could not be parsed: '${statusUri}'`)
         cache.set(authoritativeStatusCacheKey, 400)
-        return Promise.resolve(null)
+        return null
       }
 
       return normalizeAndCacheAuthoritativeStatus(parsedPost, true)
@@ -451,7 +388,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
     .catch((e) => {
       console.error(`Encountered error while fetching authoritative Status using URI '${statusUri}' | ${(e as Error).message}`)
       cache.set(authoritativeStatusCacheKey, null)
-      return Promise.resolve(null)
+      return null
     })
   // Intentionally overriding cached value because this should be the most recent update
   cache.set(authoritativeStatusCacheKey, promise)
@@ -695,8 +632,80 @@ export function fetchAccountByHandle(str?: string, force = false): Promise<masto
   return promise
 }
 
-export function cacheStatus(status: mastodon.v1.Status, override?: boolean) {
-  setCached(generateStatusIdCacheKeyAccessibleToCurrentUser(status.id), status, override)
+export async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false) {
+  const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(post.id)
+
+  try {
+    const authoritativeURI = post.reblog ? post.reblog.uri : post.uri
+    const authoritativePost = await fetchAuthoritativeStatus(authoritativeURI, force)
+
+    if (authoritativePost !== null) {
+      post.reblogsCount = authoritativePost.reblogsCount
+      post.repliesCount = authoritativePost.repliesCount
+      post.favouritesCount = authoritativePost.favouritesCount
+
+      if (post.reblog) {
+        post.reblog.reblogsCount = authoritativePost.reblogsCount
+        post.reblog.repliesCount = authoritativePost.repliesCount
+        post.reblog.favouritesCount = authoritativePost.favouritesCount
+
+        if (process.dev)
+          // eslint-disable-next-line no-console
+          console.debug('Status (reblogged) cached after enrichment:', post.reblog.id, post.reblog.account.acct, post.reblog.repliesCount, post.reblog.reblogsCount, post.reblog.favouritesCount)
+      }
+      else if (process.dev) {
+        // eslint-disable-next-line no-console
+        console.debug('Status cached after enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+      }
+
+      // Intentionally overriding cached value because this should be the most recent
+      cache.set(localStatusIdCacheKey, post)
+      return post
+    }
+    else {
+      return post
+    }
+  }
+  catch (e) {
+    console.error(`Status was cached without refreshing authoritative stats could not be fetched: '${post.uri}'`)
+    return post
+  }
+}
+
+export async function cacheStatus(post: mastodon.v1.Status, force?: boolean) {
+  const enrich = shouldBeEnriched(post)
+  post.account.acct = extractAccountWebfinger(post.account.url)!
+
+  if (post.reblog)
+    post.reblog.account.acct = extractAccountWebfinger(post.reblog.account.url)!
+
+  // FOR PUBLIC statuses, get the real stats here
+  if (
+    enrich
+    && (
+      ((post.visibility === 'public') && (!post.uri.startsWith(`https://${currentServer.value}`)))
+      || (post.reblog && (post.reblog.visibility === 'public') && (!post.reblog.uri.startsWith(`https://${currentServer.value}`)))
+    ))
+    return enrichAndCacheStatus(post, force)
+
+  const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(post.id)
+
+  if (process.dev) {
+    if (force && cache.has(localStatusIdCacheKey) && enrich)
+      console.warn('Enriched cached status was overwritten WITHOUT enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+    else if (force && cache.has(localStatusIdCacheKey) && !enrich)
+      // eslint-disable-next-line no-console
+      console.debug('Cached status was updated:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+    else if (force && !cache.has(localStatusIdCacheKey))
+      // eslint-disable-next-line no-console
+      console.debug('Status was newly-cached without enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+    else if (cache.has(localStatusIdCacheKey))
+      // eslint-disable-next-line no-console
+      console.debug('Cached status was updated:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+  }
+
+  setCached(localStatusIdCacheKey, post, force)
+  return post
 }
 
 export function removeCachedStatus(statusId: string) {
@@ -706,4 +715,21 @@ export function removeCachedStatus(statusId: string) {
 export function cacheAccount(account: mastodon.v1.Account, override?: boolean) {
   setCached(generateAccountIdCacheKey(account.id)!, account, override)
   setCached(generateAccountWebfingerCacheKeyAccessibleToCurrentUser(account.url)!, account, override)
+}
+
+export async function cacheNotification(notification: mastodon.v1.Notification, override?: boolean) {
+  setCached(generateNotificationIdCacheKey(notification.id), notification, override)
+
+  cacheAccount(notification.account, override)
+
+  if (!notification.status)
+    return Promise.resolve(notification)
+
+  return cacheStatus(notification.status, override)
+    .then(() => {
+      return notification
+    }).catch((e) => {
+      console.warn(`Unable to cache status extracted from notification: ${(e as Error).message}`)
+      return notification
+    })
 }

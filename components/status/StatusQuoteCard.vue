@@ -50,13 +50,11 @@ const statusRoute = $computed(() => getStatusRoute(status))
 const router = useRouter()
 
 function go(evt: MouseEvent | KeyboardEvent) {
-  if (evt.metaKey || evt.ctrlKey) {
+  if (evt.metaKey || evt.ctrlKey)
     window.open(statusRoute.href)
-  }
-  else {
-    cacheStatus(status)
+
+  else
     router.push(statusRoute)
-  }
 }
 </script>
 
