@@ -34,45 +34,65 @@ const props = withDefaults(
 
 const userSettings = useUserSettings()
 
-const status = $computed(() => {
+const _status = $computed(() => {
   if (props.status.reblog && (!props.status.content || props.status.content === props.status.reblog.content))
     return props.status.reblog
   return props.status
 })
 
-const isQuotableStatus = $computed(() => isQuotable(status))
-const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
+const { data: status, pending: pendingStatus, refresh: refreshStatus } = useAsyncData(
+  `status:${props.status.reblog?.id ?? props.status.id}`,
+  // async () => fetchStatus(props.status.reblog?.id ?? props.status.id, true),
+  // async () => fetchStatus(_status.uri, false),
+  async () => cacheStatus(_status, false),
+  {
+    watch: [isHydrated, _status],
+    immediate: isHydrated.value,
+    default: () => {
+      if (props.status.reblog && (!props.status.content || props.status.content === props.status.reblog.content))
+        return props.status.reblog
+      return props.status
+    },
+    transform: (maybeStatus) => {
+      if (process.dev && props.status.reblog)
+        console.warn(props.status, maybeStatus, _status)
+
+      return maybeStatus ?? _status
+    },
+  },
+)
+
+const isQuotableStatus = $computed(() => isQuotable(status.value))
+const explainIsQuotableStatus = $computed(() => explainIsQuotable(status.value))
 
 // Use original status, avoid connecting a reblog
-const directReply = $computed(() => props.hasNewer || (!!status.inReplyToId && (status.inReplyToId === props.newer?.id || status.inReplyToId === props.newer?.reblog?.id)))
+const directReply = $computed(() => props.hasNewer || (!!status.value.inReplyToId && (status.value.inReplyToId === props.newer?.id || status.value.inReplyToId === props.newer?.reblog?.id)))
 // Use reblogged status, connect it to further replies
-const connectReply = $computed(() => props.hasOlder || status.id === props.older?.inReplyToId || status.id === props.older?.reblog?.inReplyToId)
+const connectReply = $computed(() => props.hasOlder || status.value.id === props.older?.inReplyToId || status.value.id === props.older?.reblog?.inReplyToId)
 // Open a detailed status, the replies directly to it
-const replyToMain = $computed(() => props.main && props.main.id === status.inReplyToId)
+const replyToMain = $computed(() => props.main && props.main.id === status.value.inReplyToId)
 
 const rebloggedBy = $computed(() => props.status.reblog ? props.status.account : null)
 
-const statusRoute = $computed(() => getStatusRoute(status))
+const statusRoute = $computed(() => getStatusRoute(status.value))
 
 const router = useRouter()
 
 function go(evt: MouseEvent | KeyboardEvent) {
-  if (evt.metaKey || evt.ctrlKey) {
+  if (evt.metaKey || evt.ctrlKey)
     window.open(statusRoute.href)
-  }
-  else {
-    cacheStatus(status)
+
+  else
     router.push(statusRoute)
-  }
 }
 
-const createdAt = useFormattedDateTime(status.createdAt)
+const createdAt = useFormattedDateTime(status.value.createdAt)
 const timeAgoOptions = useTimeAgoOptions(true)
-const timeago = useTimeAgo(() => status.createdAt, timeAgoOptions)
+const timeago = useTimeAgo(() => status.value.createdAt, timeAgoOptions)
 
-const isSelfReply = $computed(() => status.inReplyToAccountId === status.account.id)
-const collapseRebloggedBy = $computed(() => rebloggedBy?.id === status.account.id)
-const isDM = $computed(() => props.isLastStatusInConversation || status.visibility === 'direct')
+const isSelfReply = $computed(() => status.value.inReplyToAccountId === status.value.account.id)
+const collapseRebloggedBy = $computed(() => rebloggedBy?.id === status.value.account.id)
+const isDM = $computed(() => props.isLastStatusInConversation || status.value.visibility === 'direct')
 
 const showUpperBorder = $computed(() => props.newer && !directReply)
 const showReplyTo = $computed(() => !replyToMain && !directReply)
@@ -87,6 +107,13 @@ async function toggleQuote() {
     props.toggleQuote(quotableElement.value)
   }
 }
+
+onDeactivated(() => {
+  if (props.context === 'home' || props.context === 'notifications') {
+    // Silently update data after status is off-screen
+    cacheStatus(_status, true)
+  }
+})
 </script>
 
 <template>

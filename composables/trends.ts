@@ -2,6 +2,8 @@ import type { mastodon } from 'masto'
 import { STORAGE_KEY_TRENDS } from '~/constants'
 import { type FedifiedTrends } from '~/types'
 
+const browserLocation = useBrowserLocation()
+
 const defaultTrends: FedifiedTrends = { posts: [], links: [], tags: [], timestamp: Date.now() }
 
 const trendsStorage = useLocalStorage<FedifiedTrends>(STORAGE_KEY_TRENDS, defaultTrends, { deep: true })
@@ -68,7 +70,12 @@ async function refreshTrendingPosts(force: boolean): Promise<mastodon.v1.Status[
 }
 
 async function updateTrendingPosts(force: boolean): Promise<void> {
-  // if (!currentUser.value) return;
+  if ((!currentUser.value) || (browserLocation.value.origin?.startsWith('http://127.0.0.1'))) {
+    if (process.dev)
+      // eslint-disable-next-line no-console
+      console.debug('Skipping Tag update')
+    return
+  }
 
   if (isPostUpdateInProgress.value) {
     console.warn('Ignoring: trending post update is already in progress.')
@@ -157,7 +164,12 @@ async function refreshTrendingTags(force: boolean): Promise<mastodon.v1.Tag[]> {
 }
 
 async function updateTrendingTags(force: boolean): Promise<void> {
-  // if (!currentUser.value) return;
+  if ((!currentUser.value) || (browserLocation.value.origin?.startsWith('http://127.0.0.1'))) {
+    if (process.dev)
+      // eslint-disable-next-line no-console
+      console.debug('Skipping Tag update')
+    return
+  }
 
   if (isTagUpdateInProgress.value)
     return

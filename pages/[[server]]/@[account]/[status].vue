@@ -19,13 +19,13 @@ const main = ref<ComponentPublicInstance | null>(null)
 
 const { data: status, pending, refresh: refreshStatus } = useAsyncData(
   `status:${id}`,
-  () => fetchStatus(id),
+  async () => fetchStatus(id, true),
   { watch: [isHydrated], immediate: isHydrated.value, default: () => shallowRef() },
 )
-const { client } = $(useMasto())
+
 const { data: context, pending: pendingContext, refresh: refreshContext } = useAsyncData(
   `context:${id}`,
-  async () => client.v1.statuses.fetchContext(id),
+  async () => useMastoClient().v1.statuses.fetchContext(id),
   { watch: [isHydrated], immediate: isHydrated.value, lazy: true, default: () => shallowRef() },
 )
 
@@ -136,9 +136,14 @@ watch(publishWidget, () => {
     focusEditor()
 })
 
-onReactivated(() => {
+onBeforeMount(() => {
   // Silently update data when reentering the page
   // The user will see the previous content first, and any changes will be updated to the UI when the request is completed
+  refreshStatus()
+  refreshContext()
+})
+onDeactivated(() => {
+  // Silently update data when leaving the page
   refreshStatus()
   refreshContext()
 })

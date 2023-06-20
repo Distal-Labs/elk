@@ -32,7 +32,12 @@ export function useStatusActions(props: StatusActionsProps) {
     if (!checkLogin())
       return
 
-    const prevCount = countField ? status[countField] : undefined
+    const prevCount = () => {
+      if (!countField)
+        return undefined
+
+      return (status.reblog) ? status.reblog[countField] : status[countField]
+    }
 
     isLoading[action] = true
 
@@ -43,8 +48,11 @@ export function useStatusActions(props: StatusActionsProps) {
         const newStatus = await cacheStatus(responseStatus, true)
         // when the action is cancelled, the count is not updated highly likely (if they're the same)
         // issue of Mastodon API
+        // console.info(prevCount(), (countField) ? newStatus[countField] : countField, newStatus.reblog);
+
         if (isCancel && countField) {
-          if (prevCount === newStatus[countField])
+          console.warn(prevCount(), newStatus[countField], newStatus.reblog)
+          if (prevCount() === newStatus[countField])
             newStatus[countField] -= 1
 
           if (status.reblog && newStatus.reblog && status.reblog[countField] === newStatus.reblog[countField])
@@ -57,18 +65,24 @@ export function useStatusActions(props: StatusActionsProps) {
         console.error((e as Error).message)
         Object.assign(status, responseStatus)
       }
-    }).finally(() => {
+    }).then(() => {
       isLoading[action] = false
     })
+      .catch(() => {
+        isLoading[action] = false
+      })
     // Optimistic update
     status[action] = !status[action]
 
     if (countField) {
-      status[countField] += status[action] ? 1 : -1
       if (status.reblog)
         status.reblog[countField] += status.reblog[action] ? 1 : -1
+      else
+        status[countField] += status[action] ? 1 : -1
+
+      // console.info(prevCount(), (countField) ? status[countField] : countField, status.reblog);
     }
-    // cacheStatus(status, false)
+    cacheStatus(status, false)
   }
 
   const canReblog = $computed(() =>

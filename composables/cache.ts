@@ -160,7 +160,7 @@ async function federateRemoteStatus(statusUri: string, force = false): Promise<m
     }
     else if (cached instanceof Promise) {
       if (process.dev)
-        console.warn('Returning promise')
+        console.warn('Returning promise', statusUri)
       return cached
     }
     else if (typeof cached === 'number') {
@@ -240,7 +240,7 @@ export async function fetchStatus(statusId: string, force = false): Promise<mast
     }
     else if (cached instanceof Promise) {
       if (process.dev)
-        console.warn('Returning promise')
+        console.warn('Returning promise', statusId)
       return cached
     }
     else if (typeof cached === 'number') {
@@ -335,7 +335,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
     }
     else if (cachedAuthoritative instanceof Promise) {
       if (process.dev)
-        console.warn('Returning promise')
+        console.warn('Returning promise', statusUri)
       return cachedAuthoritative
     }
     else if (typeof cachedAuthoritative === 'number') {
@@ -679,12 +679,12 @@ export async function cacheStatus(post: mastodon.v1.Status, force?: boolean) {
   if (post.reblog)
     post.reblog.account.acct = extractAccountWebfinger(post.reblog.account.url)!
 
-  // FOR PUBLIC statuses, get the real stats here
+  // FOR PUBLIC and UNLISTED statuses, get the real stats here
   if (
     enrich
     && (
-      ((post.visibility === 'public') && (!post.uri.startsWith(`https://${currentServer.value}`)))
-      || (post.reblog && (post.reblog.visibility === 'public') && (!post.reblog.uri.startsWith(`https://${currentServer.value}`)))
+      ((['public', 'unlisted'].includes(post.visibility.toString())) && (!post.uri.startsWith(`https://${currentServer.value}`)))
+      || (post.reblog && (['public', 'unlisted'].includes(post.reblog.visibility.toString())) && (!post.reblog.uri.startsWith(`https://${currentServer.value}`)))
     ))
     return enrichAndCacheStatus(post, force)
 
@@ -692,10 +692,10 @@ export async function cacheStatus(post: mastodon.v1.Status, force?: boolean) {
 
   if (process.dev) {
     if (force && cache.has(localStatusIdCacheKey) && enrich)
-      console.warn('Enriched cached status was overwritten WITHOUT enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+      console.warn('Enriched cached status was overwritten WITHOUT enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount, post)
     else if (force && cache.has(localStatusIdCacheKey) && !enrich)
-      // eslint-disable-next-line no-console
-      console.debug('Cached status was updated:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+
+      console.warn('Cached status was updated:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
     else if (force && !cache.has(localStatusIdCacheKey))
       // eslint-disable-next-line no-console
       console.debug('Status was newly-cached without enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
