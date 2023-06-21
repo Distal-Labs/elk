@@ -11,6 +11,7 @@ function reorderAndFilter(items: mastodon.v1.Status[]) {
 }
 
 const paginator = useMastoClient().v1.timelines.listHashtag(featuredTagName ?? '')
+
 const stream = useStreaming(client => client.v1.stream.streamTagTimeline(featuredTagName ?? ''))
 </script>
 

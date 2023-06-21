@@ -28,7 +28,7 @@ function removeCached(key: string) {
   cache.delete(key)
 }
 
-export function changeKeysToCamelCase<T>(d: T): T {
+function changeKeysToCamelCase<T>(d: T): T {
   function transformCase(s: string) {
     return s.replaceAll(/_\w/g, (substring: string) => substring.replace('_', '').toUpperCase())
   }
@@ -111,6 +111,10 @@ function generateAccountIdCacheKey(accountId: string) {
 
 function generateAuthoritativeStatusCacheKey(uri: string) {
   return `${currentServer.value}:status:${uri}`
+}
+
+function generateTrendCacheKey(source: string, kind: string, label: string) {
+  return `${currentServer.value}:trend:${source}:${kind}:${label}`
 }
 
 function generateStatusIdCacheKeyAccessibleToCurrentUser(statusId: string) {
@@ -205,6 +209,22 @@ async function federateRemoteStatus(statusUri: string, force = false): Promise<m
     })
   cache.set(localStatusIdCacheKey, promise)
   return promise
+}
+
+export async function bulkFederatePosts(uriArray: string[], force = false): Promise<mastodon.v1.Status[]> {
+  const federatedPosts = Array<mastodon.v1.Status>()
+
+  await Promise.allSettled(uriArray.map(async (uri) => {
+    try {
+      const federatedPost = await federateRemoteStatus(uri, force)
+      if (federatedPost)
+        federatedPosts.push(federatedPost)
+    }
+    catch (e) {
+      console.error((e as Error).message)
+    }
+  }))
+  return federatedPosts
 }
 
 export async function fetchStatus(statusId: string, force = false): Promise<mastodon.v1.Status | null> {
@@ -395,7 +415,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
   return promise
 }
 
-export function normalizeAndCacheAuthoritativeStatus(status: Partial<mastodon.v1.Status> | mastodon.v1.Status, force = true) {
+export function normalizeAndCacheAuthoritativeStatus(status: Partial<mastodon.v1.Status> | mastodon.v1.Status, force = true): mastodon.v1.Status {
   const post = changeKeysToCamelCase(status) as mastodon.v1.Status
 
   const authoritativeStatusCacheKey = generateAuthoritativeStatusCacheKey(post.uri)
@@ -405,6 +425,42 @@ export function normalizeAndCacheAuthoritativeStatus(status: Partial<mastodon.v1
   setCached(authoritativeStatusCacheKey, post, force)
 
   return post
+}
+
+export function normalizeAndCacheTrendingTag(source: string, tagUsage: { tag: string; statuses: number; reblogs: number } | { name: string; uses: number }, force = true): mastodon.v1.Tag {
+  const startOfToday = (new Date().setUTCHours(0, 0, 0, 0) / 1000).toString()
+
+  const newHistory = {
+    day: startOfToday,
+    uses: ('name' in tagUsage) ? tagUsage.uses.toString() : (tagUsage.statuses + tagUsage.reblogs).toString(),
+    accounts: ('name' in tagUsage) ? 0 : tagUsage.statuses.toString(),
+  } as mastodon.v1.TagHistory
+
+  const tagName = ('name' in tagUsage) ? tagUsage.name : tagUsage.tag
+  const derivedTag: mastodon.v1.Tag = {
+    name: tagName,
+    url: `https://${currentServer.value}/tags/${tagName}`,
+    history: [newHistory],
+    following: null,
+  } as mastodon.v1.Tag
+
+  const cacheKey = generateTrendCacheKey(source, 'tag', tagName)
+
+  useMastoClient().v1.tags.fetch(tagName)
+    .then((tag) => {
+      tag.history = (tag.history) ? [newHistory, ...tag.history.filter(_ => _.day !== startOfToday)] : [newHistory]
+
+      setCached(cacheKey, tag, force)
+      Object.assign(derivedTag, tag)
+    })
+    .catch((e) => {
+      if (process.dev)
+        console.warn(`Unable to fetch '${tagName}' tag information from host`, (e as Error).message)
+    })
+
+  setCached(cacheKey, derivedTag, false)
+
+  return derivedTag
 }
 
 function federateRemoteAccount(webfingerOrUriOrUrl: string, force = false): Promise<mastodon.v1.Account | null> {

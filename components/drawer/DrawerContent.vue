@@ -5,20 +5,9 @@ const info = useBuildInfo()
 
 const drawerContext = ref<DrawerContextType>('posts')
 
-const { posts, isPostUpdateInProgress, tags, featuredTagName, selectFeaturedTag, isTagUpdateInProgress, trendSource } = useTrends()
-
-const trendingPosts = computed(() => {
-  return [
-    ...posts.value.slice(0, 20),
-  ]
-})
+const { posts: trendingPosts, isPostUpdateInProgress, tags: trendingTags, featuredTagName, selectFeaturedTag, isTagUpdateInProgress, trendSource, updateTrends } = useTrends()
 
 const isLoading = computed(() => (isTagUpdateInProgress.value || isPostUpdateInProgress.value))
-const trendingTags = computed(() => {
-  return [
-    ...tags.value.slice(0, 5),
-  ]
-})
 
 function selectTag(tagName: string) {
   selectFeaturedTag(tagName)
@@ -43,6 +32,21 @@ const cardLabel = computed(() => {
 
   return 'What\'s trending'
 })
+
+watch(
+  currentUser,
+  () => initializeTrends(true),
+)
+
+onReactivated(() => {
+  // Silently update data when entering the page
+  updateTrends(false)
+})
+
+onUnmounted(() => {
+  // Silently update data when leaving the page
+  updateTrends(false)
+})
 </script>
 
 <template>
@@ -60,12 +64,12 @@ const cardLabel = computed(() => {
             class="zen-hide"
           >
             <DrawerTimeline
-              v-if="drawerContext && ['posts', 'tags'].includes(drawerContext)" hidden lg="block mx0 pt0"
+              v-if="isHydrated && trendingPosts && trendingTags && drawerContext && ['posts', 'tags'].includes(drawerContext)" hidden lg="block mx0 pt0"
               :trend-source="trendSource"
               :drawer-context="drawerContext"
               :change-context="changeContext"
               :posts="trendingPosts"
-              :tags="trendingTags"
+              :tags="trendingTags.slice(0, 5)"
               :selected-tag-name="featuredTagName"
               :is-loading="isLoading"
               :label="cardLabel"

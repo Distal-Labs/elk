@@ -2,16 +2,18 @@
 import type { mastodon } from 'masto'
 
 const {
-  history,
-  maxDay = 2,
-  metric = 'accounts',
+  tag,
+  maxDay = undefined,
+  metric = 'posts',
 } = $defineProps<{
-  history: mastodon.v1.TagHistory[]
+  tag: mastodon.v1.Tag
   maxDay?: number
   metric?: 'persons' | 'posts'
 }>()
 
-const usage = $computed(() => computeTagUsage(history, maxDay, metric))
+const { formatTrendingTagLabel } = useTrends()
+
+const usage = computed(() => formatTrendingTagLabel(tag, maxDay, metric))
 </script>
 
 <template>

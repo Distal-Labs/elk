@@ -46,7 +46,7 @@ const { data: status, pending: pendingStatus, refresh: refreshStatus } = useAsyn
   // async () => fetchStatus(_status.uri, false),
   async () => cacheStatus(_status, false),
   {
-    watch: [isHydrated, _status],
+    watch: [isHydrated],
     immediate: isHydrated.value,
     default: () => {
       if (props.status.reblog && (!props.status.content || props.status.content === props.status.reblog.content))

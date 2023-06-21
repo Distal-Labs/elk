@@ -13,10 +13,6 @@ const emit = defineEmits<{
   (event: 'click'): void
 }>()
 
-function totalTrend(tag: mastodon.v1.Tag) {
-  return (tag.history) ? computeTagUsage(tag.history) : 0
-}
-
 function selectTrendingPosts() {
   changeContext('posts')
 }
@@ -64,9 +60,9 @@ function selectTag(tag: mastodon.v1.Tag) {
               <span font-bold>
                 {{ tag.name }}
               </span>
-              <CommonTrending v-if="tag.history" :history="tag.history" :max-day="undefined" metric="posts" text-secondary truncate />
+              <CommonTrending v-if="tag" :tag="tag" :max-day="undefined" metric="posts" text-secondary truncate />
             </div>
-            <div v-if="totalTrend(tag) && tag.history" absolute right-0 top-0 bottom-0 op35 flex place-items-center place-content-center ml-auto>
+            <div v-if="tag.history" absolute right-0 top-0 bottom-0 op35 flex place-items-center place-content-center ml-auto>
               <CommonTrendingCharts
                 :history="tag.history" :width="150"
                 text-xs text-secondary h-full

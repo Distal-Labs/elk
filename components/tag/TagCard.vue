@@ -42,7 +42,7 @@ function go(evt: MouseEvent | KeyboardEvent) {
         <span>#</span>
         <span hover:underline>{{ tag.name }}</span>
       </h4>
-      <CommonTrending v-if="tag.history" :history="tag.history" text-sm text-secondary line-clamp-1 ws-pre-wrap break-all />
+      <CommonTrending v-if="tag" :tag="tag" text-sm text-secondary line-clamp-1 ws-pre-wrap break-all />
     </div>
     <div v-if="tag.history" flex items-center>
       <CommonTrendingCharts :history="tag.history" />

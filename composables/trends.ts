@@ -1,18 +1,72 @@
 import type { mastodon } from 'masto'
+import { bulkFederatePosts, normalizeAndCacheTrendingTag } from './cache'
 import { STORAGE_KEY_TRENDS } from '~/constants'
 import { type FedifiedTrends } from '~/types'
 
-const browserLocation = useBrowserLocation()
-
 const defaultTrends: FedifiedTrends = { posts: [], links: [], tags: [], timestamp: Date.now() }
 
-const trendsStorage = useLocalStorage<FedifiedTrends>(STORAGE_KEY_TRENDS, defaultTrends, { deep: true })
-
-const trendSource = computed(() => (!currentUser.value || process.dev) ? 'feditrends' : 'fedified')
-
-const reqPostsUrl: string = (trendSource.value === 'feditrends') ? 'https://api.feditrends.com/?type=statuses&hours=24&order=pop' : 'https://discover.fedified.com/api/v1/trends/posts'
+const trendsStorage = useLocalStorage<FedifiedTrends | Partial<FedifiedTrends>>(STORAGE_KEY_TRENDS, defaultTrends, { deep: true })
 
 const isPostUpdateInProgress = ref<boolean>(false)
+
+const isTagUpdateInProgress = ref<boolean>(false)
+
+const currentUserTrendingPosts = ref<mastodon.v1.Status[]>([])
+
+const trendingPosts = computed({
+  get: () => {
+    if (currentUser.value)
+      return currentUserTrendingPosts.value ?? []
+
+    return trendsStorage.value.posts ?? []
+  },
+  set: (newValue) => {
+    if (currentUser.value)
+      currentUserTrendingPosts.value = newValue ?? []
+
+    trendsStorage.value = {
+      posts: newValue,
+      tags: trendsStorage.value.tags,
+      links: trendsStorage.value.links,
+      timestamp: Date.now(),
+    }
+  },
+})
+
+const trendingTags = computed({
+  get: () => {
+    return trendsStorage.value.tags ?? []
+  },
+  set: (newValue) => {
+    trendsStorage.value = {
+      posts: trendsStorage.value.posts,
+      tags: newValue,
+      links: trendsStorage.value.links,
+      timestamp: Date.now(),
+    }
+  },
+})
+
+const areCachedTrendsStale = computed(() => {
+  if (!trendsStorage.value || !trendsStorage.value.timestamp)
+    return true
+
+  if (!currentUser.value && ((Date.now() - trendsStorage.value.timestamp) / 1000) > 3600) { // 1 hour for logged out visitors
+    if (process.dev)
+      console.warn('Trends are stale')
+    return true
+  }
+
+  if (((Date.now() - trendsStorage.value.timestamp) / 1000) > 600) { // 10 minutes for logged in users
+    if (process.dev)
+      console.warn('Trends are stale')
+    return true
+  }
+  return false
+})
+
+const featuredTagName = ref<string | null>(null)
+
 // -0.01157407407, -0.005787037036, -0.002893518518, -0.001446759259, -0.0007233796295, -0.0003616898148, -0.0001808449074, -0.0000904224537
 function sortPosts(a: mastodon.v1.Status, b: mastodon.v1.Status, sharedWeight = 4, likeWeight = 8, replyWeight = -1, decayWeight = -0.0001808449074) {
   // Penalizing for replies down-ranks ratio'ed posts to avoid mass dunking
@@ -22,226 +76,238 @@ function sortPosts(a: mastodon.v1.Status, b: mastodon.v1.Status, sharedWeight = 
   )
 }
 
-function getTrendingCache(): FedifiedTrends {
-  return trendsStorage.value
-}
-
-function federateTrendingPosts(remotePost: mastodon.v1.Status) {
-  normalizeAndCacheAuthoritativeStatus(remotePost, false)
-  return fetchStatus(remotePost.uri)
-}
-
-async function refreshTrendingPosts(force: boolean): Promise<mastodon.v1.Status[]> {
-  const trendingPosts = reactive(getTrendingCache().posts)
-  if (trendingPosts && (trendingPosts.length > 0) && !force)
-    return trendingPosts
+async function fetchTrendingPosts(): Promise<void> {
+  const reqPostsUrl = (!currentUser.value || process.dev) ? 'https://api.feditrends.com/?type=statuses&hours=24&order=pop' : 'https://discover.fedified.com/api/v1/trends/posts'
 
   const req = new Request(reqPostsUrl)
   req.headers.set('User-Agent', 'Mozilla/5.0 (compatible; Fedified Discover/1.0.0; +https://discover.fedified.com)')
   req.headers.set('Accept', 'application/json')
   req.headers.delete('Authorization')
 
-  const { data, pending, error } = await useFetch<mastodon.v1.Status[]>(req)
+  isPostUpdateInProgress.value = true
+  const { data, error } = await useFetch<mastodon.v1.Status[]>(req, {
+    watch: [currentUser],
+    server: false,
+    default: () => null,
+  })
 
-  if (data.value !== null) {
-    const sorted = changeKeysToCamelCase(data.value.slice(0, 40)).sort((a, b) => sortPosts(a, b))
+  if (error.value !== null) {
+    if (process.dev)
+      console.error(`Trending posts were not updated: ${error.value.message}`)
 
-    // If user is not logged in, then just return the raw values
-    if (!currentUser.value)
-      return sorted.slice(0, 40)
-
-    const results = Array<mastodon.v1.Status>()
-    await Promise.allSettled(sorted.slice(0, 40)
-      .map(async (trendingPost) => {
-        try {
-          const federatedTrendingPost = await federateTrendingPosts(trendingPost)
-          if (federatedTrendingPost)
-            results.push(federatedTrendingPost)
-        }
-        catch (e) {
-          console.error((e as Error).message)
-        }
-      }))
-    Object.assign(trendingPosts, results.filter(_ => _ !== undefined))
-    return results.sort((a, b) => sortPosts(a, b))
+    isPostUpdateInProgress.value = false
+    return
   }
-  console.error(`Trending posts were not updated | Pending?: ${pending.value} | Error?: ${error.value?.message}`)
-  return trendingPosts.sort((a, b) => sortPosts(a, b))
+  else if (data.value === null || data.value?.length === 0) {
+    if (process.dev)
+      console.warn('No trending posts were received from the server.')
+
+    isPostUpdateInProgress.value = false
+    return
+  }
+
+  if (!currentUser.value) {
+    // If user is not logged in, then no need to federate data
+    trendingPosts.value = data.value.map(post => normalizeAndCacheAuthoritativeStatus(post)).sort((a, b) => sortPosts(a, b)).slice(0, 40)
+  }
+  else {
+    const federatedPosts = await bulkFederatePosts(data.value.map(_ => _.uri))
+    trendingPosts.value = federatedPosts.sort((a, b) => sortPosts(a, b)).slice(0, 40)
+  }
+
+  isPostUpdateInProgress.value = false
 }
 
-async function updateTrendingPosts(force: boolean): Promise<void> {
-  if ((!currentUser.value) || (browserLocation.value.origin?.startsWith('http://127.0.0.1'))) {
+function updateTrendingPosts(force: boolean): void {
+  if (!currentUser.value) {
+    if (process.dev)
+      console.warn('Skipping Trending Posts update')
+    return
+  }
+
+  if (trendingPosts.value.length > 0 && !force && !areCachedTrendsStale.value) {
     if (process.dev)
       // eslint-disable-next-line no-console
-      console.debug('Skipping Tag update')
+      console.info('Returning cached trending posts')
     return
   }
 
-  if (isPostUpdateInProgress.value) {
-    console.warn('Ignoring: trending post update is already in progress.')
-    return
-  }
-  isPostUpdateInProgress.value = true
-  try {
-    const posts = await refreshTrendingPosts(force)
-    trendsStorage.value.posts = posts.sort((a, b) => sortPosts(a, b))
-    trendsStorage.value.timestamp = Date.now()
-    isPostUpdateInProgress.value = false
-  }
-  catch (e) {
-    console.error(`Unable to fetch trending posts: ${(e as Error).message}`)
-    isPostUpdateInProgress.value = false
-  }
-}
-
-const reqTagsUrl: string = (trendSource.value === 'feditrends') ? 'https://api.feditrends.com/?type=tags&hours=12&order=pop' : 'https://discover.fedified.com/api/v1/trends/tags'
-
-const isTagUpdateInProgress = ref<boolean>(false)
-
-const featuredTagName = ref<string | null>(null)
-
-interface TagUsage { name: string; uses: number; tag?: string; statuses?: number; reblogs?: number }
-
-function sortTags(a: Partial<TagUsage>, b: Partial<TagUsage>) {
-  if (trendSource.value === 'feditrends')
-    return (((b.reblogs ?? 0) + (b.statuses ?? 0)) - ((a.reblogs ?? 0) + (a.statuses ?? 0)))
-
-  return ((b.uses ?? 0) - (a.uses ?? 0))
-}
-
-async function federateAndCacheTrendingTags(tagUsage: Partial<TagUsage>) {
-  if (!currentUser.value)
-    return null
-
-  const tagName = tagUsage.name ?? tagUsage.tag
-  if (tagName) {
-    const { client } = useMasto()
-    const results = (await client.value.v2.search({ q: tagName, type: 'hashtags', resolve: false })).hashtags
-    if (results.length === 0)
-      return undefined
-    const federatedTag = results[0]
-    if (federatedTag.history && federatedTag.history.length > 0) {
-      federatedTag.history.sort((a, b) => (Number(b.day ?? '0') - Number(a.day ?? '0')))[0].uses = String(tagUsage.uses ?? ((tagUsage.reblogs ?? 0) + (tagUsage.statuses ?? 0)))
-      return federatedTag
+  fetchTrendingPosts().then(() => {
+    if (process.dev) {
+      // eslint-disable-next-line no-console
+      console.info('Finished updating Trending Posts', trendingPosts.value)
     }
-  }
+  }).catch ((e) => {
+    if (process.dev)
+      console.error(`Trending posts were not federated: ${(e as Error).message}`)
+    isPostUpdateInProgress.value = false
+  })
 }
 
-async function refreshTrendingTags(force: boolean): Promise<mastodon.v1.Tag[]> {
-  if (!currentUser.value)
-    return []
+function computeTagUsage(tag: mastodon.v1.Tag, maxDay?: number, metric = 'posts') {
+  if (!tag.history || tag.history.length === 0)
+    return 0
 
-  const trendingTags = reactive(getTrendingCache().tags)
-  if (trendingTags && (trendingTags.length > 0) && !force)
-    return trendingTags
+  const sliceOfTagHistory: mastodon.v1.TagHistory[] = (!maxDay) ? tag.history : tag.history.slice(0, maxDay)
+
+  return sliceOfTagHistory.reduce((total: number, item) => total + (Number(
+    (metric === 'posts') ? item.uses : item.accounts,
+  ) || 0), 0)
+}
+
+function formatTagUsage(usage: number): string {
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    compactDisplay: 'short',
+  }).format(usage)
+}
+
+function sortTags(a: mastodon.v1.Tag, b: mastodon.v1.Tag) {
+  return computeTagUsage(b) - computeTagUsage(a)
+}
+
+async function federateAndCacheTrendingTag(tag: mastodon.v1.Tag) {
+  if (!currentUser.value)
+    return tag
+
+  const results = (await useMastoClient().v2.search({ q: tag.name, type: 'hashtags', resolve: false })).hashtags
+  if (results.length === 0)
+    return tag
+
+  return results[0]
+}
+
+async function bulkFederateTags(tags: mastodon.v1.Tag[]): Promise<mastodon.v1.Tag[]> {
+  const federatedTags = Array<mastodon.v1.Tag>()
+
+  await Promise.allSettled(tags.map(async (trendingTag) => {
+    try {
+      const federatedTag = await federateAndCacheTrendingTag(trendingTag)
+      if (federatedTag)
+        federatedTags.push(federatedTag)
+    }
+    catch (e) {
+      console.error((e as Error).message)
+    }
+  }))
+  return federatedTags
+}
+
+async function fetchTrendingTags(): Promise<void> {
+  const source = (!currentUser.value || process.dev) ? 'feditrends' : 'fedified'
+
+  const reqTagsUrl = (!currentUser.value || process.dev) ? 'https://api.feditrends.com/?type=tags&hours=24&order=pop' : 'https://discover.fedified.com/api/v1/trends/tags'
 
   const req = new Request(reqTagsUrl)
   req.headers.set('User-Agent', 'Mozilla/5.0 (compatible; Fedified Discover/1.0.0; +https://discover.fedified.com)')
   req.headers.set('Accept', 'application/json')
   req.headers.delete('Authorization')
 
-  const { data, pending, error } = await useFetch<Partial<TagUsage>[]>(req)
+  isTagUpdateInProgress.value = true
 
-  const results = Array<mastodon.v1.Tag>()
-  if (data.value !== null) {
-    const sorted = data.value.sort((a, b) => sortTags(a, b))
-    await Promise.allSettled(sorted.slice(0, 40)
-      .map(async (trendingTag) => {
-        try {
-          const federatedTrendingTag = await federateAndCacheTrendingTags(trendingTag)
-          if (federatedTrendingTag)
-            results.push(federatedTrendingTag)
-        }
-        catch (e) {
+  const { data, error } = await useFetch<Array<{ tag: string; statuses: number; reblogs: number }> | Array<{ name: string; uses: number }> | Array<mastodon.v1.Tag>>(req, {
+    watch: [currentUser],
+    server: false,
+    default: () => null,
+    transform: (items) => {
+      return items.slice(0, 20).map(tag => normalizeAndCacheTrendingTag(source, tag as unknown as { tag: string; statuses: number; reblogs: number } | { name: string; uses: number }))
+    },
+  })
+
+  if (data.value !== null && data.value.length > 0) {
+    const cachedTags = await Promise.resolve(data.value)
+      .then((r) => { return r as Array<mastodon.v1.Tag> })
+      .catch((e) => {
+        if (process.dev)
           console.error((e as Error).message)
-        }
-      }))
-    Object.assign(trendingTags, results.filter(_ => _ !== undefined))
-    return results.sort((a, b) => sortTags(a, b))
+        return Array<mastodon.v1.Tag>()
+      })
+
+    if (!currentUser.value) {
+      // If user is not logged in, then no need to federate data
+      trendingTags.value = cachedTags.sort(sortTags)
+    }
+    else {
+      const cachedAndFederatedTags = await bulkFederateTags(cachedTags)
+        .then((r) => { return r.sort(sortTags) })
+        .catch((e) => {
+          if (process.dev)
+            console.error((e as Error).message)
+          return Array<mastodon.v1.Tag>()
+        })
+      trendingTags.value = cachedAndFederatedTags.sort(sortTags)
+    }
+
+    isTagUpdateInProgress.value = false
   }
-  console.error(`Trending tags were not updated | Pending?: ${pending.value} | Error?: ${error.value?.message}`)
-  return trendingTags.sort((a, b) => sortTags(a, b))
+  else if (error.value !== null) {
+    if (process.dev)
+      console.error(`Trending tags were not updated: ${error.value.message}`)
+
+    isTagUpdateInProgress.value = false
+  }
+  else if (data.value === null || data.value?.length === 0) {
+    if (process.dev)
+      console.warn('No trending posts were received from the server.')
+
+    isTagUpdateInProgress.value = false
+  }
 }
 
-async function updateTrendingTags(force: boolean): Promise<void> {
-  if ((!currentUser.value) || (browserLocation.value.origin?.startsWith('http://127.0.0.1'))) {
+function updateTrendingTags(force: boolean): void {
+  if (!currentUser.value) {
+    if (process.dev)
+      console.warn('Skipping Trending Tag update')
+    return
+  }
+
+  if (trendingTags.value.length > 0 && !force && !areCachedTrendsStale.value) {
     if (process.dev)
       // eslint-disable-next-line no-console
-      console.debug('Skipping Tag update')
+      console.info('Returning cached trending tags')
     return
   }
 
-  if (isTagUpdateInProgress.value)
+  fetchTrendingTags().then(() => {
+    if (process.dev) {
+      // eslint-disable-next-line no-console
+      console.info('Finished updating Trending Tags', trendingTags.value)
+    }
+  }).catch ((e) => {
+    if (process.dev)
+      console.error(`Trending Tags were not federated: ${(e as Error).message}`)
+    isTagUpdateInProgress.value = false
+  })
+}
+
+export async function initializeTrends(force = false) {
+  if (force) {
+    trendingPosts.value = []
+    trendingTags.value = []
+    fetchTrendingPosts()
+    fetchTrendingTags()
     return
-
-  isTagUpdateInProgress.value = true
-  featuredTagName.value = null
-  try {
-    const tags = await refreshTrendingTags(force)
-    const sortedTags = tags.sort((a, b) => sortTags(a, b))
-    trendsStorage.value.tags = sortedTags
-    trendsStorage.value.timestamp = Date.now()
-
-    if (sortedTags.length > 0)
-      featuredTagName.value = sortedTags[0].name
-
-    isTagUpdateInProgress.value = false
   }
-  catch (e) {
-    console.error(`Unable to fetch trending tags: ${(e as Error).message}`)
-    isTagUpdateInProgress.value = false
-  }
-}
 
-async function retrieveOrRefreshTrends(force: boolean) {
-  // if (Date.now() > (getTrendingCache().timestamp + 3600 * 1000)) { // 1 hr
-  //   console.warn('Resetting trends because the cache has expired')
-  //   trendsStorage.value = defaultTrends
-  // }
-
-  // if (trendsUserStorage.value !== userHandle) {
-  //   console.warn('Resetting trending posts because the active user has changed')
-  //   trendsStorage.value.posts = defaultTrends.posts
-  // }
-  await updateTrendingTags(force)
-  await updateTrendingPosts(force)
-}
-
-export async function initializeTrends() {
-  await retrieveOrRefreshTrends(true)
+  updateTrendingTags(force)
+  updateTrendingPosts(force)
 }
 
 function selectFeaturedTag(tagName: string) {
   featuredTagName.value = tagName
 }
 
-export function computeTagUsage(tagHistory: mastodon.v1.TagHistory[], maxDay?: number, metric = 'posts') {
-  if (tagHistory.length === 0)
-    return 0
-
-  const sliceOfTagHistory: mastodon.v1.TagHistory[] = (!maxDay) ? tagHistory : tagHistory.slice(0, maxDay)
-
-  const number = sliceOfTagHistory.reduce((total: number, item) => total + (Number(
-    (metric === 'posts') ? item.uses : item.accounts,
-  ) || 0), 0)
-
-  return new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    compactDisplay: 'short',
-  }).format(number)
-}
-
 export function useTrends() {
-  const currentTrendingPosts = computed(() => (getTrendingCache().posts.length > 0) ? getTrendingCache().posts.sort((a, b) => sortPosts(a, b)) : [])
-  const currentTrendingTags = computed(() => (getTrendingCache().tags.length > 0) ? getTrendingCache().tags.sort((a, b) => sortTags(a, b)) : [])
   return {
-    posts: currentTrendingPosts,
-    tags: currentTrendingTags,
-    trendSource,
-    updateTrendingTags,
+    trendSource: computed(() => (!currentUser.value || process.dev) ? 'feditrends' : 'fedified'),
+    posts: trendingPosts,
+    tags: trendingTags,
     updateTrendingPosts,
+    updateTrendingTags,
+    updateTrends: initializeTrends,
     isPostUpdateInProgress,
     isTagUpdateInProgress,
+    formatTrendingTagLabel: (tag: mastodon.v1.Tag, maxDay?: number, metric = 'posts') => formatTagUsage(computeTagUsage(tag, maxDay, metric)),
     featuredTagName,
     selectFeaturedTag,
   }
