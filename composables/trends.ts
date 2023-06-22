@@ -166,33 +166,6 @@ function sortTags(a: mastodon.v1.Tag, b: mastodon.v1.Tag) {
   return computeTagUsage(b) - computeTagUsage(a)
 }
 
-async function federateAndCacheTrendingTag(tag: mastodon.v1.Tag) {
-  if (!currentUser.value)
-    return tag
-
-  const results = (await useMastoClient().v2.search({ q: tag.name, type: 'hashtags', resolve: false })).hashtags
-  if (results.length === 0)
-    return tag
-
-  return results[0]
-}
-
-async function bulkFederateTags(tags: mastodon.v1.Tag[]): Promise<mastodon.v1.Tag[]> {
-  const federatedTags = Array<mastodon.v1.Tag>()
-
-  await Promise.allSettled(tags.map(async (trendingTag) => {
-    try {
-      const federatedTag = await federateAndCacheTrendingTag(trendingTag)
-      if (federatedTag)
-        federatedTags.push(federatedTag)
-    }
-    catch (e) {
-      console.error((e as Error).message)
-    }
-  }))
-  return federatedTags
-}
-
 async function fetchTrendingTags(): Promise<void> {
   const source = (!currentUser.value || process.dev) ? 'feditrends' : 'fedified'
 
@@ -209,35 +182,16 @@ async function fetchTrendingTags(): Promise<void> {
     watch: [currentUser],
     server: false,
     default: () => null,
-    transform: (items) => {
-      return items.slice(0, 20).map(tag => normalizeAndCacheTrendingTag(source, tag as unknown as { tag: string; statuses: number; reblogs: number } | { name: string; uses: number }))
-    },
   })
 
   if (data.value !== null && data.value.length > 0) {
-    const cachedTags = await Promise.resolve(data.value)
-      .then((r) => { return r as Array<mastodon.v1.Tag> })
-      .catch((e) => {
-        if (process.dev)
-          console.error((e as Error).message)
-        return Array<mastodon.v1.Tag>()
-      })
-
-    if (!currentUser.value) {
-      // If user is not logged in, then no need to federate data
-      trendingTags.value = cachedTags.sort(sortTags)
-    }
-    else {
-      const cachedAndFederatedTags = await bulkFederateTags(cachedTags)
-        .then((r) => { return r.sort(sortTags) })
-        .catch((e) => {
-          if (process.dev)
-            console.error((e as Error).message)
-          return Array<mastodon.v1.Tag>()
-        })
-      trendingTags.value = cachedAndFederatedTags.sort(sortTags)
+    const cachedTags = Array<mastodon.v1.Tag>()
+    for await (const tag of data.value.slice(0, 20)) {
+      const aTag = await normalizeAndCacheTrendingTag(source, tag as unknown as { tag: string; statuses: number; reblogs: number } | { name: string; uses: number })
+      cachedTags.push(aTag)
     }
 
+    trendingTags.value = cachedTags.sort(sortTags)
     isTagUpdateInProgress.value = false
   }
   else if (error.value !== null) {

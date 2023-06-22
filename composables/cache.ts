@@ -427,13 +427,13 @@ export function normalizeAndCacheAuthoritativeStatus(status: Partial<mastodon.v1
   return post
 }
 
-export function normalizeAndCacheTrendingTag(source: string, tagUsage: { tag: string; statuses: number; reblogs: number } | { name: string; uses: number }, force = true): mastodon.v1.Tag {
+export async function normalizeAndCacheTrendingTag(source: string, tagUsage: { tag: string; statuses: number; reblogs: number } | { name: string; uses: number }): Promise<mastodon.v1.Tag> {
   const startOfToday = (new Date().setUTCHours(0, 0, 0, 0) / 1000).toString()
 
   const newHistory = {
     day: startOfToday,
+    accounts: ('name' in tagUsage) ? '0' : tagUsage.statuses.toString(),
     uses: ('name' in tagUsage) ? tagUsage.uses.toString() : (tagUsage.statuses + tagUsage.reblogs).toString(),
-    accounts: ('name' in tagUsage) ? 0 : tagUsage.statuses.toString(),
   } as mastodon.v1.TagHistory
 
   const tagName = ('name' in tagUsage) ? tagUsage.name : tagUsage.tag
@@ -446,21 +446,19 @@ export function normalizeAndCacheTrendingTag(source: string, tagUsage: { tag: st
 
   const cacheKey = generateTrendCacheKey(source, 'tag', tagName)
 
-  useMastoClient().v1.tags.fetch(tagName)
+  return useMastoClient().v1.tags.fetch(tagName)
     .then((tag) => {
       tag.history = (tag.history) ? [newHistory, ...tag.history.filter(_ => _.day !== startOfToday)] : [newHistory]
-
-      setCached(cacheKey, tag, force)
-      Object.assign(derivedTag, tag)
+      setCached(cacheKey, tag, true)
+      return tag
     })
     .catch((e) => {
       if (process.dev)
         console.warn(`Unable to fetch '${tagName}' tag information from host`, (e as Error).message)
+
+      setCached(cacheKey, derivedTag, false)
+      return derivedTag
     })
-
-  setCached(cacheKey, derivedTag, false)
-
-  return derivedTag
 }
 
 function federateRemoteAccount(webfingerOrUriOrUrl: string, force = false): Promise<mastodon.v1.Account | null> {

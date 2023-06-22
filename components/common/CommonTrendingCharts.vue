@@ -15,7 +15,7 @@ const {
 const historyNum = $computed(() => {
   if (!history)
     return [1, 1, 1, 1, 1, 1, 1]
-  return [...history].reverse().map(item => Number(item.accounts) || 0)
+  return [...history].reverse().map(item => Number(item.uses) || 0)
 })
 
 const sparklineEl = $ref<SVGSVGElement>()
