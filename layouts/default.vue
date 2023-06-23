@@ -72,7 +72,7 @@ const appContainerClass = computed(() => {
               <NavSide
                 command flex-col flex-auto flex-basis-lg justify-start
                 mt0 mb0
-                min-h-10vh h-100dvh
+                min-h-10vh
                 sm="w-80px min-h-60dvh"
                 xl="w-275px"
               />

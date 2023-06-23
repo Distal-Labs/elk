@@ -8,11 +8,12 @@ const disableCompose = computed(() => route.path?.startsWith('/compose'))
 
 const { countActiveNotifications } = useNotifications()
 const { countUnreadConversations } = useConversations()
-const { width: windowWidth } = useWindowSize()
+const { width: windowWidth, height: windowHeight } = useWindowSize()
 
 const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 
 const isNarrowWindow = computed(() => windowWidth.value < 640)
+const isShortWindow = computed(() => windowHeight.value < 720)
 
 const countNotifications = $computed(() => {
   if (windowWidth.value < 640)
@@ -31,7 +32,7 @@ const countConversations = $computed(() => {
   <nav sm:px3 flex="~ col gap2" shrink text-size-base leading-normal md:text-xl h-full my-1 place-content-evenly xl:place-content-start overflow-y-auto>
     <NavSideItem :text="$t('nav.home')" to="/home" icon="i-ri:home-5-line" user-only :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" xl:hidden :command="command" :replace="true" />
-    <NavSideItem :text="$t('nav.explore')" :to="isHydrated ? `/${currentServer}/explore` : '/explore'" icon="i-ri:hashtag" :command="command" :replace="true" />
+    <NavSideItem v-if="!isShortWindow" :text="$t('nav.explore')" :to="isHydrated ? `/${currentServer}/explore` : '/explore'" icon="i-ri:hashtag" :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only :command="command" :replace="true">
       <template #icon>
         <div flex relative>
@@ -53,7 +54,7 @@ const countConversations = $computed(() => {
       </template>
     </NavSideItem>
     <NavSideItem :text="$t('nav.lists')" :to="isHydrated ? `/${currentServer}/lists` : '/lists'" icon="i-ri:file-list-line" user-only :command="command" :replace="true" />
-    <NavSideItem :text="$t('nav.bookmarks')" to="/bookmarks" icon="i-ri:bookmark-line" user-only :command="command" :replace="true" />
+    <NavSideItem v-if="!isShortWindow" :text="$t('nav.bookmarks')" to="/bookmarks" icon="i-ri:bookmark-line" user-only :command="command" :replace="true" />
 
     <NavSideItem v-if="isNarrowWindow" :text="$t('nav.favourites')" to="/favourites" :icon="useStarFavoriteIcon ? 'i-ri:star-line' : 'i-ri:heart-3-line'" user-only :command="command" :replace="true" />
     <NavSideItem v-if="isNarrowWindow" :text="$t('nav.local')" :to="isHydrated ? `/${currentServer}/public/local` : '/public/local'" icon="i-ri:group-2-line " :command="command" :replace="true" />
