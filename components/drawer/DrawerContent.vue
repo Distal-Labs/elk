@@ -3,7 +3,7 @@ import type { DrawerContextOptionsType, DrawerContextType } from '~/types'
 
 const info = useBuildInfo()
 
-const drawerContext = ref<DrawerContextType>('posts')
+const drawerContext = ref<DrawerContextType>('discover-accounts')
 
 const { posts: trendingPosts, isPostUpdateInProgress, tags: trendingTags, featuredTagName, selectFeaturedTag, isTagUpdateInProgress, trendSource, updateTrends } = useTrends()
 
@@ -23,6 +23,9 @@ function changeContext(context: DrawerContextType, options?: DrawerContextOption
 const cardLabel = computed(() => {
   if (isPostUpdateInProgress.value || isTagUpdateInProgress.value)
     return 'Loading trends...'
+
+  if (drawerContext.value === 'discover-accounts')
+    return 'Who to follow'
 
   if (drawerContext.value === 'tags' && featuredTagName.value)
     return `Trending: #${featuredTagName.value}`
@@ -50,13 +53,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <nav>
-    <div hidden lg="h-full grid grid-rows-[minmax(0,90vh)_auto_auto] gap-4 overflow-hidden">
-      <div flex="~ col" justify-between h-full w-full overflow-x-hidden>
-        <div v-if="isHydrated && currentUser" hidden lg="grid grid-rows-0" overflow-hidden class="zen-hide">
+  <nav overflow-y-hidden>
+    <div hidden lg="h-full grid grid-rows-[minmax(0,90vh)_auto_auto] gap-4 overflow-y-hidden">
+      <div flex="~ col" justify-between h-full w-full overflow-y-hidden>
+        <div v-if="isHydrated && currentUser" hidden lg="grid grid-rows-0" overflow-y-hidden class="zen-hide">
           <div
             v-if="isHydrated && currentUser"
-            overflow-hidden
+            overflow-y-hidden
             mx-0
             pt-0 ps-4 pe-1
             rounded-4
@@ -64,7 +67,7 @@ onUnmounted(() => {
             class="zen-hide"
           >
             <DrawerTimeline
-              v-if="isHydrated && trendingPosts && trendingTags && drawerContext && ['posts', 'tags'].includes(drawerContext)" hidden lg="block mx0 pt0"
+              v-if="isHydrated && trendingPosts && trendingTags && drawerContext && ['posts', 'tags', 'discover-accounts'].includes(drawerContext)" hidden lg="block mx0 pt0"
               :trend-source="trendSource"
               :drawer-context="drawerContext"
               :change-context="changeContext"

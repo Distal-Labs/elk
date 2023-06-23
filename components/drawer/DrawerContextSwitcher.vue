@@ -17,6 +17,10 @@ function selectTrendingPosts() {
   changeContext('posts')
 }
 
+function selectDiscoverAccounts() {
+  changeContext('discover-accounts')
+}
+
 function selectTag(tag: mastodon.v1.Tag) {
   changeContext('tags', { tag })
 }
@@ -24,7 +28,6 @@ function selectTag(tag: mastodon.v1.Tag) {
 
 <template>
   <div sm:min-w-80 max-w-100vw mxa py2 flex="~ col" @click="emit('click')">
-    <span v-if="drawerContext !== 'tags'" flex="~ col" w-full pt3 pb3 px4 text-current font-800 text-size-xl>Trending tags</span>
     <template v-if="drawerContext !== 'posts'">
       <button
         flex rounded px4 py3 text-left
@@ -44,6 +47,26 @@ function selectTag(tag: mastodon.v1.Tag) {
         <!-- <div v-if="drawerContext === 'posts'" i-ri:check-line text-primary mya ms-2 text-2xl /> -->
       </button>
     </template>
+    <template v-if="drawerContext !== 'discover-accounts'">
+      <button
+        flex rounded px4 py3 text-left
+        hover:bg-active cursor-pointer transition-100
+        aria-label="'Discover new accounts to follow'"
+        @click="selectDiscoverAccounts"
+      >
+        <div flex flex-row items-center gap2 relative>
+          <div w-10 h-10 flex-none rounded-full bg-active flex place-items-center place-content-center>
+            <div i-ri:fire-line text-secondary text-lg />
+          </div>
+          <div flex flex-col>
+            <span font-bold>Discover Accounts</span>
+          </div>
+        </div>
+        <div flex-auto />
+        <!-- <div v-if="drawerContext === 'discover-accounts'" i-ri:check-line text-primary mya ms-2 text-2xl /> -->
+      </button>
+    </template>
+    <span v-if="drawerContext !== 'tags'" flex="~ col" w-full pt3 pb3 px4 text-current font-800 text-size-xl>Trending tags</span>
     <div v-if="drawerContext !== 'tags'" border="t base" pt2 bg-card overflow-y-auto overflow-x-hidden>
       <template v-for="tag of tags" :key="tag.name">
         <button

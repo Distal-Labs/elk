@@ -95,7 +95,7 @@ export interface FedifiedTrends {
   timestamp: number
 }
 
-export type DrawerContextType = 'posts' | 'tags' | 'notifications'
+export type DrawerContextType = 'posts' | 'tags' | 'discover-accounts' | 'notifications'
 
 export interface DrawerContextOptionsType {
   tag?: mastodon.v1.Tag

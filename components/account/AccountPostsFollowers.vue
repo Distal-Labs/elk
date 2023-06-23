@@ -4,15 +4,18 @@ import type { mastodon } from 'masto'
 defineProps<{
   account: mastodon.v1.Account
   isHoverCard?: boolean
+  // Fedified Extensions
+  isCompactCard?: boolean
 }>()
 
 const userSettings = useUserSettings()
 </script>
 
 <template>
-  <div flex gap-5>
+  <div flex gap-5 justify-evenly>
     <template v-if="currentUser">
       <NuxtLink
+        v-if="!(isCompactCard)"
         :to="getAccountRoute(account)"
         replace
         text-secondary

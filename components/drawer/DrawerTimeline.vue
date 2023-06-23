@@ -23,8 +23,8 @@ const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'fedi
 </script>
 
 <template v-if="isHydrated && currentUser">
-  <div rounded-4 p0 m0>
-    <div flex="~ row 1" min-w-full>
+  <div rounded-4 p0 m0 overflow-y-hidden overflow-x-visible>
+    <div flex="~ row 1" min-w-full overflow-hidden>
       <div
         flex flex-wrap
         w-full
@@ -33,8 +33,8 @@ const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'fedi
           <span pt3 flex="~ col" w-full text-current font-800 text-size-xl>
             {{ label }}
           </span>
-          <NuxtLink v-if="isSourceFeditrends" href="https://feditrends.com" external target="_blank">
-            <span v-if="isSourceFeditrends" flex="~ col" w-full pt1 text-sm text-secondary leading-snug>
+          <NuxtLink v-if="(['posts', 'tags'].includes(drawerContext)) && isSourceFeditrends" href="https://feditrends.com" external target="_blank">
+            <span v-if="(['posts', 'tags'].includes(drawerContext)) && isSourceFeditrends" flex="~ col" w-full pt1 text-sm text-secondary leading-snug>
               Courtesy of Feditrends
             </span>
           </NuxtLink>
@@ -53,17 +53,20 @@ const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'fedi
         />
       </div>
     </div>
-    <div v-if="isHydrated && (drawerContext === 'tags')">
+    <div v-if="isHydrated && (drawerContext === 'discover-accounts')" max-h-100dvh overflow-y-hidden overflow-x-visible>
+      <DrawerDiscoverAccounts :is-loading="isLoading" :featured-tag-name="selectedTagName" />
+    </div>
+    <div v-if="isHydrated && (drawerContext === 'tags')" max-h-100dvh overflow-y-hidden overflow-x-visible>
       <DrawerHashtagStream :is-loading="isLoading" :featured-tag-name="selectedTagName" />
     </div>
-    <div v-else-if="isHydrated && (drawerContext === 'posts')" max-h-70vh overscroll-y-contain overflow-y-auto>
-      <div max-h-fit overscroll-y-contain overflow-y-auto>
+    <div v-else-if="isHydrated && (drawerContext === 'posts')" max-h-100dvh overflow-y-hidden overflow-x-visible>
+      <div max-h-70dvh overscroll-y-contain overflow-y-auto overflow-x-hidden>
         <template v-for="item in posts" :key="item?.uri">
           <div px0 py4 me-3>
             <StatusQuoteCard :status="item" context="account" :actions="true" :in-drawer="true" :in-notification="true" />
           </div>
         </template>
-        <div p5 text-secondary italic text-center>
+        <div p5 text-secondary italic text-center mb-5dvh>
           {{ $t('common.end_of_list') }}
         </div>
       </div>
