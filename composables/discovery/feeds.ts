@@ -39,6 +39,15 @@ function getRelationships<T extends mastodon.v1.Status>(item: T) {
   return rels
 }
 
+function shouldNeverBeExcluded<T extends mastodon.v1.Status>(item: T) {
+  return (
+    (alwaysLargeAccounts(item))
+    || (item.reblogged === true)
+    || (item.favourited === true)
+    || (item.bookmarked === true)
+  )
+}
+
 function alwaysLargeAccounts<T extends mastodon.v1.Status>(item: T) {
   return (item.account.followersCount > 1000)
 }
@@ -53,48 +62,56 @@ function onlyFamiliarAccounts<T extends mastodon.v1.Status>(item: T) {
 }
 
 function excludeBots<T extends mastodon.v1.Status>(item: T) {
-  return !(item.account.bot)
+  return !(
+    item.account.bot
+  ) || !shouldNeverBeExcluded(item)
 }
 
 function excludeLockedAccounts<T extends mastodon.v1.Status>(item: T) {
-  return !(item.account.locked)
+  return !(
+    item.account.locked
+  ) || !shouldNeverBeExcluded(item)
 }
 
 function excludeNewAccounts<T extends mastodon.v1.Status>(item: T) {
   return !(
     (item.account.followersCount < 100)
     || ((((Date.now() - Date.parse(item.account.createdAt))) / (86400000)) < 30)
-  )
+  ) || !shouldNeverBeExcluded(item)
 }
 
 function excludeSpammyAccounts<T extends mastodon.v1.Status>(item: T) {
   return !(
-    (item.account.displayName.includes('nuop') === true)
+    (item.account.displayName.toLowerCase().includes('nuop') === true)
     || (item.account.statusesCount / ((((Date.now() - Date.parse(item.account.createdAt))) / (86400000)))) > 288
-  )
+  ) || !shouldNeverBeExcluded(item)
 }
 
 const userLanguage = (useNavigatorLanguage().language.value ?? 'en-US').toLowerCase()
 
 function onlyPreferredLanguage<T extends mastodon.v1.Status>(item: T) {
-  return (item.language) ? (userLanguage.includes(item.language.toLowerCase())) : true
+  return (
+    (item.language) ? (userLanguage.includes(item.language.toLowerCase())) : true
+  ) || shouldNeverBeExcluded(item)
 }
 
 function excludeBoosts<T extends mastodon.v1.Status>(item: T) {
-  return !item.reblog
+  return !(
+    item.reblog
+  ) || !shouldNeverBeExcluded(item)
 }
 
 function excludeCrossposts<T extends mastodon.v1.Status>(item: T) {
   return !(
     item.application?.name?.toLowerCase()?.includes('cross')
-  )
+  ) || !shouldNeverBeExcluded(item)
 }
 
 function excludeBirdsite<T extends mastodon.v1.Status>(item: T) {
   return !(
     item.content?.toLowerCase()?.includes('twitter.com')
     || item.content?.toLowerCase()?.includes('t.co')
-  )
+  ) || !shouldNeverBeExcluded(item)
 }
 
 function excludeNSFW<T extends mastodon.v1.Status>(item: T) {
@@ -103,11 +120,14 @@ function excludeNSFW<T extends mastodon.v1.Status>(item: T) {
     || (item.spoilerText?.toLowerCase()?.includes('nudity'))
     || (item.content?.toLowerCase()?.includes('nsfw'))
     || (item.content?.toLowerCase()?.includes('porn'))
-  )
+  ) || !shouldNeverBeExcluded(item)
 }
 
 function excludeReplies<T extends mastodon.v1.Status>(item: T) {
-  return !(item.inReplyToAccountId && item.inReplyToAccountId !== item.account.id)
+  return !(
+    item.inReplyToAccountId
+    && (item.inReplyToAccountId !== item.account.id)
+  ) || !shouldNeverBeExcluded(item)
 }
 
 const availableTransforms: FeedTransform = {

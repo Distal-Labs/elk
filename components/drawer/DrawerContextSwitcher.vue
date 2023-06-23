@@ -56,7 +56,7 @@ function selectTag(tag: mastodon.v1.Tag) {
       >
         <div flex flex-row items-center gap2 relative>
           <div w-10 h-10 flex-none rounded-full bg-active flex place-items-center place-content-center>
-            <div i-ri:fire-line text-secondary text-lg />
+            <div i-ri:group-2-line text-secondary text-lg />
           </div>
           <div flex flex-col>
             <span font-bold>Discover Accounts</span>

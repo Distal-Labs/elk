@@ -54,7 +54,7 @@ const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'fedi
       </div>
     </div>
     <div v-if="isHydrated && (drawerContext === 'discover-accounts')" max-h-100dvh overflow-y-hidden overflow-x-visible>
-      <DrawerDiscoverAccounts :is-loading="isLoading" :featured-tag-name="selectedTagName" />
+      <DrawerDiscoverAccounts :is-loading="isLoading" />
     </div>
     <div v-if="isHydrated && (drawerContext === 'tags')" max-h-100dvh overflow-y-hidden overflow-x-visible>
       <DrawerHashtagStream :is-loading="isLoading" :featured-tag-name="selectedTagName" />
