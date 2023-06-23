@@ -41,14 +41,14 @@ watch(
   () => initializeTrends(true),
 )
 
-onReactivated(() => {
-  // Silently update data when entering the page
-  updateTrends(false)
-})
+watch(
+  [isHydrated],
+  () => isHydrated.value ? updateTrends(false) : undefined,
+)
 
-onUnmounted(() => {
-  // Silently update data when leaving the page
-  updateTrends(false)
+onReactivated(() => {
+  // Force update data when reactivating
+  updateTrends(true)
 })
 </script>
 
