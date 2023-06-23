@@ -2,7 +2,7 @@ import { LRUCache } from 'lru-cache'
 import type { mastodon } from 'masto'
 import { useFeeds } from './discovery/feeds'
 
-const { shouldBeEnriched } = useFeeds()
+const { shouldBeEnriched, shouldBeCached } = useFeeds()
 
 // expire in an hour
 const cache = new LRUCache<string, any>({
@@ -727,7 +727,7 @@ export async function enrichAndCacheStatus(post: mastodon.v1.Status, force = fal
 }
 
 export async function cacheStatus(post: mastodon.v1.Status, force?: boolean) {
-  const enrich = shouldBeEnriched(post)
+  const enrich = shouldBeEnriched(post) || shouldBeCached(post)
   post.account.acct = extractAccountWebfinger(post.account.url)!
 
   if (post.reblog)

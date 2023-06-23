@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
 import { inject, ref } from 'vue'
+import { useElementVisibility } from '@vueuse/core'
 import { explainIsQuotable, isQuotable } from '../../composables/quote'
 
 const props = withDefaults(
@@ -34,34 +35,13 @@ const props = withDefaults(
 
 const userSettings = useUserSettings()
 
-const _status = $computed(() => {
+const _status = computed(() => {
   if (props.status.reblog && (!props.status.content || props.status.content === props.status.reblog.content))
     return props.status.reblog
   return props.status
 })
 
-const { data: status, pending: pendingStatus, refresh: refreshStatus } = useAsyncData(
-  `status:${props.status.reblog?.id ?? props.status.id}`,
-  // async () => fetchStatus(props.status.reblog?.id ?? props.status.id, true),
-  // async () => fetchStatus(_status.uri, false),
-  async () => cacheStatus(_status, false),
-  {
-    watch: [isHydrated],
-    immediate: isHydrated.value,
-    default: () => {
-      if (props.status.reblog && (!props.status.content || props.status.content === props.status.reblog.content))
-        return props.status.reblog
-      return props.status
-    },
-    transform: (maybeStatus) => {
-      if (process.dev && props.status.reblog)
-        console.warn(props.status, maybeStatus, _status)
-
-      return maybeStatus ?? _status
-    },
-  },
-)
-
+const status = ref<mastodon.v1.Status>(_status.value)
 const isQuotableStatus = $computed(() => isQuotable(status.value))
 const explainIsQuotableStatus = $computed(() => explainIsQuotable(status.value))
 
@@ -108,16 +88,42 @@ async function toggleQuote() {
   }
 }
 
-onDeactivated(() => {
+onBeforeMount(async () => {
   if (props.context === 'home' || props.context === 'notifications') {
     // Silently update data after status is off-screen
-    cacheStatus(_status, true)
+    // await fetchStatus(_status.value.uri, true).then((r) => {
+    await fetchStatus(status.value.uri, true).then((r) => {
+      status.value = r ?? _status.value
+    })
   }
 })
+
+const target = ref(null)
+const targetIsVisible = useElementVisibility(target)
+watch(
+  [targetIsVisible],
+  async () => {
+    if (!targetIsVisible.value && !props.inNotification && !props.isBeingQuoted) {
+      if (status.value instanceof Promise)
+        return
+
+      cacheStatus(status.value, true).then((aPost) => {
+        if (aPost && !(aPost instanceof Promise)) {
+          if (process.dev)
+            console.warn('Re-fetched', aPost.account.acct, aPost.id, aPost.repliesCount, aPost.reblogsCount, aPost.favouritesCount)
+          status.value = aPost
+        }
+      }).catch((e) => {
+        if (process.dev)
+          console.error((e as Error).message)
+      })
+    }
+  },
+)
 </script>
 
 <template>
-  <StatusLink :status="status" :hover="hover && currentUser !== undefined">
+  <StatusLink ref="target" :status="status" :hover="hover && currentUser !== undefined">
     <!-- Upper border -->
     <div :h="showUpperBorder ? '1px' : '0'" w-auto bg-border mb-1 />
 
