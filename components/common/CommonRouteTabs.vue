@@ -51,5 +51,8 @@ useCommands(() => command
         <span ws-nowrap mxa sm:px2 sm:py3 py2 text-center text-secondary-light op50>{{ option.display }}</span>
       </div>
     </template>
+    <div flex flex-none w-fit h-full p0 m0>
+      <TimelineMenu v-if="$router.currentRoute.value.name && $router.currentRoute.value.name.toString() === 'notifications'" :route-name="$router.currentRoute.value.name?.toString()" />
+    </div>
   </div>
 </template>

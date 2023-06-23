@@ -60,12 +60,10 @@ const noUserVisual = computed(() => (isHydrated.value && props.userOnly && !curr
   >
     <CommonTooltip :disabled="!isMediumOrLargeScreen" :content="text" placement="right">
       <div
-        flex justify-items-center
-        w-fit h-fit aspect-ratio-1 rounded-full p2
-        sm="mxa"
-        bg-primary text-base shadow="~ lg text-secondary-light" w-48px h-48px
-
+        flex justify-items-center rounded-full gap4 grid-items-center mxa py1 px5 w-auto
+        sm="mxa aspect-ratio-1 w-fit h-fit p2"
         xl="aspect-ratio-0 rounded-full grid-cols-[1fr_auto] gap4 grid-items-center ml0 mr5 py1 px5 w-auto"
+        bg-primary text-base shadow="~ lg text-secondary-light" w-48px h-48px
         transition-100
         elk-group-hover="bg-active text-base" group-focus-visible:ring="2 current"
       >

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useElementVisibility } from '@vueuse/core'
 import type { GroupedLikeNotifications } from '~/types'
 
 const { group } = defineProps<{
@@ -7,10 +9,29 @@ const { group } = defineProps<{
 
 const reblogs = $computed(() => group.likes.filter(i => i.reblog))
 const likes = $computed(() => group.likes.filter(i => i.favourite && !i.reblog))
+
+const { dismissOneNotification } = useNotifications()
+const target = ref(null)
+const targetIsVisible = useElementVisibility(target)
+
+watch(
+  targetIsVisible,
+  () => {
+    if (targetIsVisible) {
+      for (const item of group.likes) {
+        if (item.favourite)
+          dismissOneNotification(item.favourite.id)
+
+        if (item.reblog)
+          dismissOneNotification(item.reblog.id)
+      }
+    }
+  },
+)
 </script>
 
 <template>
-  <article flex flex-col relative>
+  <article ref="target" flex flex-col relative>
     <StatusLink :status="group.status!" pb2 pt3>
       <div flex flex-col gap-2>
         <div v-if="reblogs.length" flex="~ gap-1">

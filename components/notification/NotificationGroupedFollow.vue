@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useElementVisibility } from '@vueuse/core'
 import type { GroupedNotifications } from '~/types'
 
 const { items } = defineProps<{
@@ -10,10 +12,24 @@ const isExpanded = ref(false)
 const lang = $computed(() => {
   return (count > 1 || count === 0) ? undefined : items.items[0].status?.language
 })
+
+const { dismissOneNotification } = useNotifications()
+const target = ref(null)
+const targetIsVisible = useElementVisibility(target)
+
+watch(
+  targetIsVisible,
+  () => {
+    if (targetIsVisible) {
+      for (const item of items.items)
+        dismissOneNotification(item.id)
+    }
+  },
+)
 </script>
 
 <template>
-  <article flex flex-col relative :lang="lang ?? undefined">
+  <article ref="target" flex flex-col relative :lang="lang ?? undefined">
     <div flex items-center top-0 left-2 pt-2 px-3>
       <div i-ri:user-follow-fill me-3 color-primary aria-hidden="true" />
       <template v-if="count > 1">

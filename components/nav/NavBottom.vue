@@ -9,15 +9,31 @@ const moreMenuVisible = ref(false)
 onMounted(() => {
   backRef.value = ''
 })
-const { countNotifications } = useNotifications()
+const { countActiveNotifications } = useNotifications()
 const { countUnreadConversations } = useConversations()
+const { width: windowWidth } = useWindowSize()
+
 router.afterEach(async (to, from) => {
+  if (windowWidth.value < 640)
+    return
   if (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(to.name as string) && (to.name !== from.name))
     backRef.value = ''
   else if ((currentUser.value !== undefined) && ((router.currentRoute.value.name === 'home') || (router.currentRoute.value.name === 'index') || (router.currentRoute.value.name === null)))
     backRef.value = ''
   else
     backRef.value = router.currentRoute.value.path
+})
+
+const countNotifications = $computed(() => {
+  if (windowWidth.value < 640)
+    return countActiveNotifications('all')
+  return 0
+})
+
+const countConversations = $computed(() => {
+  if (windowWidth.value < 640)
+    return countUnreadConversations.value
+  return 0
 })
 </script>
 
@@ -49,8 +65,8 @@ router.afterEach(async (to, from) => {
       <NuxtLink to="/conversations" :aria-label="$t('nav.conversations')" :active-class="moreMenuVisible ? '' : 'text-primary'" flex flex-row items-center place-content-center h-full flex-1 class="coarse-pointer:select-none" :replace="true" @click="$scrollToTop">
         <div flex relative>
           <div class="i-ri:mail-line" text-xl />
-          <div v-if="countUnreadConversations > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ countUnreadConversations < 100 ? countUnreadConversations : '•' }}
+          <div v-if="countConversations > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countConversations < 100 ? countConversations : '•' }}
           </div>
         </div>
       </NuxtLink>

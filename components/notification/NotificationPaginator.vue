@@ -4,12 +4,13 @@ import { DynamicScrollerItem } from 'vue-virtual-scroller'
 import type { Paginator, WsEvents, mastodon } from 'masto'
 import type { GroupedAccountLike, NotificationSlot } from '~/types'
 
-const { paginator, stream } = defineProps<{
+const { paginator, stream, inDrawer = false } = defineProps<{
   paginator: Paginator<mastodon.v1.Notification[], mastodon.v1.ListNotificationsParams>
   stream?: Promise<WsEvents>
+  inDrawer?: boolean
 }>()
 
-const virtualScroller = false // $(usePreferences('experimentalVirtualScroller'))
+const virtualScroller = false // TODO: fix flickering issue with virtual scroll
 // const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
 
 const groupCapacity = Number.MAX_VALUE // No limit
@@ -153,11 +154,6 @@ function preprocess(items: NotificationSlot[]): NotificationSlot[] {
 }
 
 const { formatNumber } = useHumanReadableNumber()
-
-const { dismissOneNotification } = useNotifications()
-async function dismiss(id: string) {
-  dismissOneNotification(id)
-}
 </script>
 
 <!-- eslint-disable vue/attribute-hyphenation -->
@@ -170,7 +166,7 @@ async function dismiss(id: string) {
     eventType="notification"
   >
     <template #updater="{ number, update }">
-      <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="() => { update() }">
+      <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="() => { update(); }">
         {{ $t('timeline.show_new_items', number, { named: { v: formatNumber(number) } }) }}
       </button>
     </template>
@@ -181,25 +177,17 @@ async function dismiss(id: string) {
             v-if="item.type === 'grouped-follow'"
             :items="item"
             border="b base"
-            @vnode-mounted="{
-              item.items.forEach((_) => dismiss(_.id));
-              dismiss(item.id)
-            }"
           />
           <NotificationGroupedLikes
             v-else-if="item.type === 'grouped-reblogs-and-favourites'"
             :group="item"
             border="b base"
-            @vnode-mounted="item.likes.forEach((_) => {
-              dismiss(_.reblog?.id ?? '')
-              dismiss(_.favourite?.id ?? '');
-            })"
           />
           <NotificationCard
             v-else
             :notification="item"
+            :in-drawer="inDrawer"
             border="b base"
-            @vnode-mounted="dismiss(item.id)"
           />
         </DynamicScrollerItem>
       </template>
@@ -208,25 +196,17 @@ async function dismiss(id: string) {
           v-if="item.type === 'grouped-follow'"
           :items="item"
           border="b base"
-          @vnode-mounted="{
-            item.items.forEach((_) => dismiss(_.id));
-            dismiss(item.id)
-          }"
         />
         <NotificationGroupedLikes
           v-else-if="item.type === 'grouped-reblogs-and-favourites'"
           :group="item"
           border="b base"
-          @vnode-mounted="item.likes.forEach((_) => {
-            dismiss(_.reblog?.id ?? '');
-            dismiss(_.favourite?.id ?? '');
-          })"
         />
         <NotificationCard
           v-else
           :notification="item"
+          :in-drawer="inDrawer"
           border="b base"
-          @vnode-mounted="dismiss(item.id)"
         />
       </template>
     </template>

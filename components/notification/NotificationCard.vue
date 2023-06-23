@@ -1,15 +1,47 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
+import { ref } from 'vue'
+import { useElementVisibility } from '@vueuse/core'
 
 const { notification } = defineProps<{
   notification: mastodon.v1.Notification
 }>()
 
-const isDM = computed(() => notification.status?.visibility === 'direct')
+const post = ref<mastodon.v1.Status | null | undefined>(notification.status)
+
+const isDM = computed(() => (post.value && post.value.visibility === 'direct'))
+
+const { dismissOneNotification } = useNotifications()
+const target = ref(null)
+const targetIsVisible = useElementVisibility(target)
+
+watch(
+  [targetIsVisible],
+  () => {
+    if (targetIsVisible.value) {
+      dismissOneNotification(notification.id)
+    }
+    else if (notification.status && post.value && !targetIsVisible.value) {
+      if (!post.value)
+        post.value = notification.status
+
+      if (post.value instanceof Promise)
+        return
+
+      fetchStatus(notification.status.id, false).then((aPost) => {
+        if (aPost)
+          post.value = aPost
+      }).catch((e) => {
+        if (process.dev)
+          console.error((e as Error).message)
+      })
+    }
+  },
+)
 </script>
 
 <template>
-  <article flex flex-col relative>
+  <article v-if="isHydrated" ref="target" flex flex-col relative>
     <template v-if="notification.type === 'follow'">
       <NuxtLink :to="getAccountRoute(notification.account)">
         <div
@@ -17,7 +49,7 @@ const isDM = computed(() => notification.status?.visibility === 'direct')
           ps-3 pe-4 inset-is-0
           rounded-ie-be-3
           py-3 bg-base top-0
-          :lang="notification.status?.language ?? undefined"
+          :lang="post?.language ?? undefined"
         >
           <div i-ri:user-follow-fill me-1 color-primary />
           <AccountDisplayName :account="notification.account" text-primary me-1 font-bold line-clamp-1 ws-pre-wrap break-all />
@@ -27,7 +59,7 @@ const isDM = computed(() => notification.status?.visibility === 'direct')
         </div>
         <AccountBigCard
           :account="notification.account"
-          :lang="notification.status?.language ?? undefined"
+          :lang="post?.language ?? undefined"
         />
       </NuxtLink>
     </template>
@@ -66,8 +98,8 @@ const isDM = computed(() => notification.status?.visibility === 'direct')
       <!-- TODO: accept request -->
       <AccountCard :account="notification.account" />
     </template>
-    <template v-else-if="!isDM && notification.type === 'update'">
-      <StatusCard :status="notification.status!" :in-notification="true" :actions="false">
+    <template v-else-if="post && !isDM && notification.type === 'update'">
+      <StatusCard :status="post" :in-notification="true" :actions="false">
         <template #meta>
           <div flex="~" gap-1 items-center mt1>
             <div i-ri:edit-2-fill text-xl me-1 text-secondary />
@@ -79,8 +111,8 @@ const isDM = computed(() => notification.status?.visibility === 'direct')
         </template>
       </StatusCard>
     </template>
-    <template v-else-if="!isDM && ['status', 'mention', 'poll'].includes(notification.type)">
-      <StatusCard :status="notification.status!" :actions="true" :in-notification="true" :in-drawer="false" />
+    <template v-else-if="post && !isDM && (notification.type === 'status' || notification.type === 'mention' || notification.type === 'poll')">
+      <StatusCard :status="post" :actions="true" :in-notification="true" :in-drawer="false" />
     </template>
     <template v-else-if="isDM">
       <div class="hidden" />

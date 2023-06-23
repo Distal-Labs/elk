@@ -12,7 +12,7 @@ export function usePaginator<T, P, U = T>(
   // called `next` method will mutate the internal state of the variable,
   // and we need its initial state after HMR
   // so clone it
-  const paginator = _paginator.clone()
+  const paginator = _paginator // .clone()
 
   const state = ref<PaginatorState>(isHydrated.value ? 'idle' : 'loading')
   const items = ref<U[]>([])
@@ -113,6 +113,10 @@ export function usePaginator<T, P, U = T>(
     bound.update()
   }
 
+  function disconnect(): void {
+    stream.value?.then(stream => stream.disconnect())
+  }
+
   if (process.client) {
     useIntervalFn(() => {
       bound.update()
@@ -128,13 +132,11 @@ export function usePaginator<T, P, U = T>(
     watch(
       () => [isInScreen, state],
       () => {
-        if (
-          isInScreen
-          && state.value === 'idle'
-          // No new content is loaded when the keepAlive page enters the background
-          && deactivated.value === false
-        )
+        // No new content is loaded when the keepAlive page enters the background
+        if (isInScreen && state.value === 'idle' && deactivated.value === false)
           loadNext()
+        else if (state.value === 'error')
+          disconnect()
       },
     )
   }
@@ -146,5 +148,7 @@ export function usePaginator<T, P, U = T>(
     state,
     error,
     endAnchor,
+    disconnect,
+    resume: loadNext(),
   }
 }

@@ -18,7 +18,6 @@ onHydrated(async () => {
 
 <template>
   <VDropdown :distance="0" placement="top-start" strategy="fixed" @apply-show="mask.show()" @apply-hide="mask.hide()">
-    <!-- 21:5  error  Expected '<component>' elements to have 'v-bind:is' attribute  vue/require-component-is -->
     <div
       :active-class="activeClass"
       group focus:outline-none disabled:pointer-events-none
@@ -28,9 +27,8 @@ onHydrated(async () => {
     >
       <CommonTooltip :disabled="!isMediumOrLargeScreen" :content="text" placement="right">
         <div
-          flex justify-items-center
-          w-fit h-fit aspect-ratio-1 rounded-full p2
-          sm="mxa"
+          flex justify-items-center rounded-full gap4 grid-items-center mxa py1 px5 w-auto
+          sm="mxa aspect-ratio-1 w-fit h-fit p2"
           xl="aspect-ratio-0 rounded-full grid-cols-[1fr_auto] gap4 grid-items-center ml0 mr5 py1 px4 w-auto"
           transition-100
           elk-group-hover="bg-active" group-focus-visible:ring="2 current"

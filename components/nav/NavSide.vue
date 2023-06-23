@@ -6,8 +6,25 @@ const { command } = defineProps<{
 const route = useRoute()
 const disableCompose = computed(() => route.path?.startsWith('/compose'))
 
-const { countNotifications } = useNotifications()
+const { countActiveNotifications } = useNotifications()
 const { countUnreadConversations } = useConversations()
+const { width: windowWidth } = useWindowSize()
+
+const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
+
+const isNarrowWindow = computed(() => windowWidth.value < 640)
+
+const countNotifications = $computed(() => {
+  if (windowWidth.value < 640)
+    return 0
+  return countActiveNotifications('all')
+})
+
+const countConversations = $computed(() => {
+  if (windowWidth.value < 640)
+    return 0
+  return countUnreadConversations.value
+})
 </script>
 
 <template>
@@ -29,8 +46,8 @@ const { countUnreadConversations } = useConversations()
       <template #icon>
         <div flex relative>
           <div class="i-ri:mail-line" text-xl />
-          <div v-if="countUnreadConversations > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
-            {{ countUnreadConversations < 100 ? countUnreadConversations : '•' }}
+          <div v-if="countConversations > 0" class="top-[-0.4rem] right-[-0.4rem] h-1.25rem w-1.25rem" absolute font-bold rounded-full text-xs bg-primary text-inverted flex items-center justify-center>
+            {{ countConversations < 100 ? countConversations : '•' }}
           </div>
         </div>
       </template>
@@ -38,10 +55,17 @@ const { countUnreadConversations } = useConversations()
     <NavSideItem :text="$t('nav.lists')" :to="isHydrated ? `/${currentServer}/lists` : '/lists'" icon="i-ri:file-list-line" user-only :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.bookmarks')" to="/bookmarks" icon="i-ri:bookmark-line" user-only :command="command" :replace="true" />
 
-    <NavSideMoreDropdown :command="command" :text="$t('action.more')" />
+    <NavSideItem v-if="isNarrowWindow" :text="$t('nav.favourites')" to="/favourites" :icon="useStarFavoriteIcon ? 'i-ri:star-line' : 'i-ri:heart-3-line'" user-only :command="command" :replace="true" />
+    <NavSideItem v-if="isNarrowWindow" :text="$t('nav.local')" :to="isHydrated ? `/${currentServer}/public/local` : '/public/local'" icon="i-ri:group-2-line " :command="command" :replace="true" />
+    <NavSideItem v-if="isNarrowWindow" :text="$t('nav.federated')" :to="isHydrated ? `/${currentServer}/public` : '/public'" icon="i-ri:earth-line" :command="command" :replace="true" />
 
+    <NavSideItem v-if="isNarrowWindow" :text="$t('nav.settings')" to="/settings" icon="i-ri:settings-3-line" :command="command" />
+    <div v-if="isNarrowWindow" class="spacer" shrink sm:hidden />
+
+    <NavSideMoreDropdown v-if="!isNarrowWindow" :command="command" :text="$t('action.more')" />
     <div class="spacer" shrink hidden sm:block />
     <CommonFloatingActionButton :text="$t('action.compose')" to="/compose" icon="i-ri:quill-pen-line" user-only :command="command" :replace="false" :disable="disableCompose" />
+    <div v-if="isNarrowWindow" class="spacer" shrink sm:hidden />
   </nav>
 </template>
 

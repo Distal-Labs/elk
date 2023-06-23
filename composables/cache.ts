@@ -228,7 +228,7 @@ export async function bulkFederatePosts(uriArray: string[], force = false): Prom
 }
 
 export async function fetchStatus(statusId: string, force = false): Promise<mastodon.v1.Status | null> {
-  if (cache.has(`stop:${statusId}`)) {
+  if (cache.has(`stop:${statusId}`) || statusId.trim().length === 0) {
     if (process.dev)
       console.warn(`Skipping further processing for invalid status Id: ${statusId}`)
     return Promise.resolve(null)

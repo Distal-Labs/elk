@@ -9,7 +9,11 @@ onMounted(() => {
   backRef.value = ''
 })
 
+const { width: windowWidth } = useWindowSize()
+
 router.afterEach(async (to, from) => {
+  if ((windowWidth.value < 640) === false)
+    return
   if ((currentUser.value !== undefined) && ((router.currentRoute.value.name === 'home') || (router.currentRoute.value.name === 'index') || (router.currentRoute.value.name === null)))
     backRef.value = ''
   else if (ROUTES_THAT_SWITCH_USER_CONTEXT.includes(to.name as string) && (to.name !== from.name))

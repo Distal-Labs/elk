@@ -13,11 +13,29 @@ const tabs = $computed<CommonRouteTabOption[]>(() => [
     name: 'all',
     to: '/notifications',
     display: isHydrated.value ? t('tab.notifications_all') : '',
+    disabled: !isHydrated.value || !currentUser.value,
+    command: true,
+  },
+  {
+    name: 'posts',
+    to: '/notifications/posts',
+    display: isHydrated.value ? t('tab.notifications_status') : '',
+    disabled: !isHydrated.value || !currentUser.value,
+    command: false,
   },
   {
     name: 'mention',
     to: '/notifications/mention',
     display: isHydrated.value ? t('tab.notifications_mention') : '',
+    disabled: !isHydrated.value || !currentUser.value,
+    command: true,
+  },
+  {
+    name: 'followers',
+    to: '/notifications/followers',
+    display: isHydrated.value ? t('tab.notifications_followers') : '',
+    disabled: !isHydrated.value || !currentUser.value,
+    command: false,
   },
 ])
 </script>
