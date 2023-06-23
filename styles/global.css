@@ -5,6 +5,8 @@ html {
   height: 100dvh;
   margin: 0;
   padding: 0;
+  overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 @font-face {
@@ -28,7 +30,7 @@ body {
   width: 100vw;
   margin: 0;
   padding: 0;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: none;
   overscroll-behavior-x: none;
   overscroll-behavior-block: contain;
   -webkit-tap-highlight-color: transparent;
