@@ -6,18 +6,20 @@ const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
   details?: boolean
   command?: boolean
-  inDrawer?: boolean
+  isCompact?: boolean
   isQuotableStatus?: boolean
   isBeingQuoted?: boolean
   explainIsQuotableStatus?: string
   toggleQuote?: () => Promise<void>
   isLastStatusInConversation?: boolean
   isDM?: boolean
+  targetIsVisible: boolean
 }>(), {
-  inDrawer: false,
+  isCompact: false,
   isBeingQuoted: false,
   isQuotableStatus: false,
   explainIsQuotableStatus: 'This post is not quotable',
+  targetIsVisible: false,
 })
 
 const focusEditor = inject<typeof noop>('focus-editor', noop)
@@ -93,7 +95,7 @@ function reply() {
       </StatusActionButton>
     </div>
 
-    <div v-if="!inDrawer && !isPartOfDMThread" flex-1>
+    <div v-if="!isCompact && !isPartOfDMThread" flex-1>
       <StatusActionButton
         :content="quoteButtonTooltip"
         text=""

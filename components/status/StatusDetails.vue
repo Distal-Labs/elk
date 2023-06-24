@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
 import { inject, ref } from 'vue'
+import { useElementVisibility } from '@vueuse/core'
 import { explainIsQuotable, isQuotable } from '../../composables/quote'
 
 const props = withDefaults(defineProps<{
@@ -55,10 +56,12 @@ watch(quotableElement, () => {
 },
 { immediate: false },
 )
+const target = ref(null)
+const targetIsVisible = useElementVisibility(target)
 </script>
 
 <template>
-  <div :id="`status-${status.id}`" flex flex-col gap-2 pt2 pb1 ps-3 pe-4 relative :lang="status.language ?? undefined" aria-roledescription="status-details">
+  <div :id="`status-${status.id}`" ref="target" flex flex-col gap-2 pt2 pb1 ps-3 pe-4 relative :lang="status.language ?? undefined" aria-roledescription="status-details">
     <StatusActionsMore :status="status" absolute inset-ie-2 top-2 @after-edit="$emit('refetchStatus')" />
     <div ref="quotableElement" style="padding: 2rem;">
       <template v-if="currentUser">
@@ -111,6 +114,8 @@ watch(quotableElement, () => {
         :explain-is-quotable-status="explainIsQuotableStatus"
         :is-being-quoted="props.isBeingQuoted"
         :toggle-quote="toggleQuote"
+        :is-compact="false"
+        :target-is-visible="targetIsVisible"
       />
     </div>
   </div>

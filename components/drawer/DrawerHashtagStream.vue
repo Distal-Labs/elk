@@ -17,6 +17,6 @@ const stream = useStreaming(client => client.v1.stream.streamTagTimeline(feature
 
 <template v-if="isHydrated">
   <div v-if="paginator && stream" max-h-100vh overscroll-y-contain overflow-y-auto>
-    <TimelinePaginator v-show="stream" v-bind="{ paginator, stream }" :preprocess="reorderAndFilter" context="public" />
+    <TimelinePaginator v-show="stream" v-bind="{ paginator, stream }" :preprocess="reorderAndFilter" context="home" :is-compact="true" />
   </div>
 </template>

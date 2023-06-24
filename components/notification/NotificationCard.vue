@@ -17,7 +17,7 @@ const targetIsVisible = useElementVisibility(target)
 
 watch(
   [targetIsVisible],
-  () => {
+  async () => {
     if (targetIsVisible.value) {
       dismissOneNotification(notification.id)
     }
@@ -28,7 +28,7 @@ watch(
       if (post.value instanceof Promise)
         return
 
-      fetchStatus(notification.status.id, false).then((aPost) => {
+      await fetchStatus(notification.status.id, false).then((aPost) => {
         if (aPost)
           post.value = aPost
       }).catch((e) => {

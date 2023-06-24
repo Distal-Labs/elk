@@ -4,7 +4,7 @@ import { DynamicScrollerItem } from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import type { Paginator, WsEvents, mastodon } from 'masto'
 
-const { paginator, stream, account, buffer = 10, endMessage } = defineProps<{
+const { paginator, stream, account, buffer = 10, endMessage, isCompact = false } = defineProps<{
   paginator: Paginator<mastodon.v1.Status[], mastodon.v1.ListAccountStatusesParams>
   stream?: Promise<WsEvents>
   context?: mastodon.v2.FilterContext
@@ -12,6 +12,8 @@ const { paginator, stream, account, buffer = 10, endMessage } = defineProps<{
   preprocess?: (items: mastodon.v1.Status[]) => mastodon.v1.Status[] | Promise<mastodon.v1.Status[]>
   buffer?: number
   endMessage?: boolean | string
+  // Fedified extensions
+  isCompact?: boolean
 }>()
 
 const { formatNumber } = useHumanReadableNumber()
@@ -32,11 +34,25 @@ const showOriginSite = $computed(() =>
     <template #default="{ item, older, newer, active }">
       <template v-if="virtualScroller">
         <DynamicScrollerItem :item="item" :active="active" tag="article">
-          <StatusCard :status="item" :context="context" :older="older" :newer="newer" />
+          <template v-if="isCompact">
+            <div px0 py4 me-3>
+              <StatusQuoteCard :status="item" :is-compact="isCompact" :context="context" :older="older" :newer="newer" />
+            </div>
+          </template>
+          <template v-else>
+            <StatusCard :status="item" :context="context" :older="older" :newer="newer" />
+          </template>
         </DynamicScrollerItem>
       </template>
       <template v-else>
-        <StatusCard :status="item" :context="context" :older="older" :newer="newer" />
+        <template v-if="isCompact">
+          <div px0 py4 me-3>
+            <StatusQuoteCard :status="item" :is-compact="isCompact" :context="context" :older="older" :newer="newer" />
+          </div>
+        </template>
+        <template v-else>
+          <StatusCard :status="item" :context="context" :older="older" :newer="newer" />
+        </template>
       </template>
     </template>
     <template v-if="context === 'account' && showOriginSite" #done>

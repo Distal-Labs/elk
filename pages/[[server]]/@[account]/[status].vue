@@ -145,7 +145,6 @@ onReactivated(() => {
 onUnmounted(() => {
   // Silently update data when leaving the page
   refreshStatus()
-  refreshContext()
 })
 </script>
 

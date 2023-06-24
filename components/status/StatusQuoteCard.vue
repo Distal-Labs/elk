@@ -1,52 +1,54 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
+import { useElementVisibility } from '@vueuse/core'
 
 const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
-  actions: boolean
-  inDrawer: boolean
-  inNotification: boolean
+  actions?: boolean
+  isCompact?: boolean
+  inNotification?: boolean
   isBeingQuoted?: boolean
   toggleQuote?: <T extends Node>(quotableElement: T) => Promise<void>
 }>(), {
-  actions: false,
-  inDrawer: false,
+  actions: true,
+  isCompact: false,
   inNotification: false,
 })
 
 const userSettings = useUserSettings()
 
-const status: mastodon.v1.Status = $computed(() => props.status)
+const _status = computed(() => props.status)
+const status = ref<mastodon.v1.Status>(_status.value)
 
-const linkToStatus: URL = $computed(() => new URL(status.uri))
+const linkToStatus: URL = $computed(() => new URL(status.value.uri))
 const acct: string = $computed(() => (window.location.hostname === linkToStatus.host) ? linkToStatus.pathname.split('/')[1].replace('@', '') : `${linkToStatus.pathname.split('/')[1].replace('@', '')}@${linkToStatus.hostname}`)
-const username: string = $computed(() => status.account.username)
+const username: string = $computed(() => status.value.account.username)
 const serverName: string = $computed(() => acct.split('@')[1])
 
 const timeAgoOptions = useTimeAgoOptions(true)
-const timeago = useTimeAgo(() => status.createdAt, timeAgoOptions)
-const isQuotableStatus = $computed(() => isQuotable(status))
-const explainIsQuotableStatus = $computed(() => explainIsQuotable(status))
+const timeago = useTimeAgo(() => status.value.createdAt, timeAgoOptions)
+const isQuotableStatus = $computed(() => isQuotable(status.value))
+const explainIsQuotableStatus = $computed(() => explainIsQuotable(status.value))
 
 // Content Filter logic
-const filterResult = $computed(() => status.filtered?.length ? status.filtered[0] : null)
+const filterResult = $computed(() => status.value.filtered?.length ? status.value.filtered[0] : null)
 const filter = $computed(() => filterResult?.filter)
 
 const filterPhrase = $computed(() => filter?.title)
-const isFiltered = $computed(() => (status.account.id !== currentUser?.value?.account?.id) && (filterPhrase !== undefined))
+const isFiltered = $computed(() => (status.value.account.id !== currentUser?.value?.account?.id) && (filterPhrase !== undefined))
 
 // check spoiler text or media attachment
 // needed to handle accounts that mark all their posts as sensitive
-const spoilerTextPresent = $computed(() => !!status.spoilerText && status.spoilerText.trim().length > 0)
-const hasSpoilerOrSensitiveMedia = $computed(() => spoilerTextPresent || (status.sensitive && !!status.mediaAttachments.length))
-const isSensitiveNonSpoiler = computed(() => status.sensitive && !status.spoilerText && !!status.mediaAttachments.length)
+const spoilerTextPresent = $computed(() => !!status.value.spoilerText && status.value.spoilerText.trim().length > 0)
+const hasSpoilerOrSensitiveMedia = $computed(() => spoilerTextPresent || (status.value.sensitive && !!status.value.mediaAttachments.length))
+const isSensitiveNonSpoiler = computed(() => status.value.sensitive && !status.value.spoilerText && !!status.value.mediaAttachments.length)
 const hideAllMedia = computed(
   () => {
-    return currentUser.value ? (getHideMediaByDefault(currentUser.value.account) && !!status.mediaAttachments.length) : false
+    return currentUser.value ? (getHideMediaByDefault(currentUser.value.account) && !!status.value.mediaAttachments.length) : false
   },
 )
 
-const statusRoute = $computed(() => getStatusRoute(status))
+const statusRoute = $computed(() => getStatusRoute(status.value))
 const router = useRouter()
 
 function go(evt: MouseEvent | KeyboardEvent) {
@@ -56,10 +58,57 @@ function go(evt: MouseEvent | KeyboardEvent) {
   else
     router.push(statusRoute)
 }
+const target = ref(null)
+const targetIsVisible = useElementVisibility(target)
+/*
+watch(
+  [targetIsVisible, _status],
+  async () => {
+    if (!targetIsVisible.value && !props.inNotification && !props.isBeingQuoted) {
+      if (status.value instanceof Promise)
+        return
+
+      await cacheStatus(status.value, false).then((aPost) => {
+        if (aPost && !(aPost instanceof Promise)) {
+          if (process.dev)
+            console.debug('CACHED (not forced)', aPost.account.acct, aPost.id, aPost.repliesCount, aPost.reblogsCount, aPost.favouritesCount)
+          status.value = aPost
+        }
+      }).catch((e) => {
+        if (process.dev)
+          console.error((e as Error).message)
+      })
+    }
+  },
+);
+
+onReactivated(async () => {
+  // Silently update data after status is off-screen
+  // await fetchStatus(_status.value.uri, true).then((r) => {
+  fetchStatus(_status.value.uri, false).then((r) => {
+    if (process.dev)
+      // eslint-disable-next-line no-console
+      console.debug('FETCH (not forced)', _status.value.account.acct, _status.value.id, _status.value.repliesCount, _status.value.reblogsCount, _status.value.favouritesCount);
+    status.value = r ?? _status.value
+  });
+});
+
+onUnmounted(async () => {
+  // Silently cache data after status is off-screen
+  cacheStatus(status.value, true).then((r) => {
+    status.value = r ?? _status.value
+
+    if (process.dev)
+      // eslint-disable-next-line no-console
+      console.warn('CACHE (forced)', status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount);
+  });
+});
+*/
 </script>
 
 <template v-if="status.account">
   <div
+    ref="target"
     flex flex-col
     display-block of-hidden
     bg-code
@@ -95,12 +144,12 @@ function go(evt: MouseEvent | KeyboardEvent) {
                   flex-none min-w-fit max-w-fit font-bold line-clamp-1 ws-pre-wrap break-all text-primary
                 />
                 <AccountBotIndicator
-                  v-if="status.account.bot && !inDrawer"
+                  v-if="status.account.bot && !isCompact"
                   flex-none min-w-fit max-w-fit me-1
                 />
               </div>
 
-              <div v-if="!inDrawer" flex="~ row gap-2" shrink min-w-0 flex-nowrap items-start align-baseline max-w-fit class="zen-none">
+              <div v-if="!isCompact" flex="~ row gap-2" shrink min-w-0 flex-nowrap items-start align-baseline max-w-fit class="zen-none">
                 <div flex="~ row gap-0" basis-0 grow min-w-0 flex-nowrap items-start align-baseline max-w-fit line-clamp-1 ws-pre-wrap class="zen-none">
                   <div min-w-content>
                     <span text-secondary>{{ username }}</span>
@@ -157,11 +206,12 @@ function go(evt: MouseEvent | KeyboardEvent) {
         :is-quotable-status="isQuotableStatus"
         :explain-is-quotable-status="explainIsQuotableStatus"
         :is-being-quoted="props.isBeingQuoted"
-        :in-drawer="props.inDrawer"
+        :is-compact="props.isCompact"
+        :target-is-visible="targetIsVisible"
       />
       <!-- END -->
       <div
-        v-if="!inDrawer && !inNotification && !actions"
+        v-if="!isCompact && !inNotification && !actions"
         flex justify-between mt-4
       >
         <div />

@@ -22,7 +22,7 @@ const paginator = useMastoClient().v2.suggestions.list({ limit: 20 })
       </template>
     </CommonPaginator>
     <!-- <div v-if="paginator && stream" max-h-100vh overscroll-y-contain overflow-y-auto>
-      <TimelinePaginator v-bind="{ paginator, stream }" :preprocess="reorderAndFilter" :context="isLoading ? 'public' : 'home'" />
+      <TimelinePaginator v-bind="{ paginator, stream }" :preprocess="reorderAndFilter" :context="isLoading ? 'public' : 'home'" :is-compact="true" />
     </div> -->
     <div p5 mb-5dvh />
   </div>

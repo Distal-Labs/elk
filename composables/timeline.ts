@@ -1,10 +1,9 @@
 import type { mastodon } from 'masto'
 import { useFeeds } from './discovery/feeds'
-import { enrichAndCacheStatus } from './cache'
 
 const maxDistance = 10
 const maxSteps = 1000
-const { applyPublicTimelineFeed, shouldBeCached, shouldBeEnriched } = useFeeds()
+const { applyPublicTimelineFeed, shouldBeCached } = useFeeds()
 
 // Checks if (b) is a reply to (a)
 function areStatusesConsecutive(a: mastodon.v1.Status, b: mastodon.v1.Status) {
@@ -26,17 +25,7 @@ async function cacheItems(items: mastodon.v1.Status[], context: mastodon.v1.Filt
   const results: mastodon.v1.Status[] = []
 
   await Promise.allSettled(items.map(async (item) => {
-    if ((context === 'home') && shouldBeEnriched(item)) {
-      try {
-        const enrichedAndCachedItem = await enrichAndCacheStatus(item)
-        results.push(enrichedAndCachedItem)
-      }
-      catch (e) {
-        console.error('Unable to cache status:', (e as Error).message)
-        results.push(item)
-      }
-    }
-    else if (shouldBeCached(item)) {
+    if (shouldBeCached(item)) {
       try {
         const cachedItem = await cacheStatus(item)
         results.push(cachedItem)

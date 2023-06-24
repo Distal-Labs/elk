@@ -2,12 +2,12 @@ import { LRUCache } from 'lru-cache'
 import type { mastodon } from 'masto'
 import { useFeeds } from './discovery/feeds'
 
-const { shouldBeEnriched, shouldBeCached } = useFeeds()
+const { shouldBeEnriched } = useFeeds()
 
 // expire in an hour
 const cache = new LRUCache<string, any>({
   max: 1000,
-  ttl: 3600000,
+  ttl: 60000, // check every minute
   ttlAutopurge: true,
   allowStaleOnFetchAbort: true,
   allowStaleOnFetchRejection: true,
@@ -686,7 +686,7 @@ export function fetchAccountByHandle(str?: string, force = false): Promise<masto
   return promise
 }
 
-export async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false) {
+async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false) {
   const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(post.id)
 
   try {
@@ -703,14 +703,18 @@ export async function enrichAndCacheStatus(post: mastodon.v1.Status, force = fal
         post.reblog.repliesCount = authoritativePost.repliesCount
         post.reblog.favouritesCount = authoritativePost.favouritesCount
 
-        if (process.dev)
-          // eslint-disable-next-line no-console
-          console.debug('Status (reblogged) cached after enrichment:', post.reblog.id, post.reblog.account.acct, post.reblog.repliesCount, post.reblog.reblogsCount, post.reblog.favouritesCount)
+        // if (process.dev)
+        //   // eslint-disable-next-line no-console
+        //   console.debug('Status (reblogged) cached after enrichment:', post.reblog.id, post.reblog.account.acct, post.reblog.repliesCount, post.reblog.reblogsCount, post.reblog.favouritesCount)
       }
-      else if (process.dev) {
-        // eslint-disable-next-line no-console
-        console.debug('Status cached after enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
-      }
+      // else if (process.dev) {
+      //   // eslint-disable-next-line no-console
+      //   console.debug('Status cached after enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+      // }
+
+      if (process.dev && force)
+
+        console.warn('ENRICH (forced)', post.account.acct, post.id, post.repliesCount, post.reblogsCount, post.favouritesCount)
 
       // Intentionally overriding cached value because this should be the most recent
       cache.set(localStatusIdCacheKey, post)
@@ -727,7 +731,7 @@ export async function enrichAndCacheStatus(post: mastodon.v1.Status, force = fal
 }
 
 export async function cacheStatus(post: mastodon.v1.Status, force?: boolean) {
-  const enrich = shouldBeEnriched(post) || shouldBeCached(post)
+  const enrich = shouldBeEnriched(post)
   post.account.acct = extractAccountWebfinger(post.account.url)!
 
   if (post.reblog)

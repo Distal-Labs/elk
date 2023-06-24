@@ -92,34 +92,50 @@ onBeforeMount(async () => {
   if (props.context === 'home' || props.context === 'notifications') {
     // Silently update data after status is off-screen
     // await fetchStatus(_status.value.uri, true).then((r) => {
-    await fetchStatus(status.value.uri, true).then((r) => {
+    fetchStatus(_status.value.uri, false).then((r) => {
+      if (process.dev)
+        // eslint-disable-next-line no-console
+        console.debug('FETCH (not forced)', _status.value.account.acct, _status.value.id, _status.value.repliesCount, _status.value.reblogsCount, _status.value.favouritesCount)
       status.value = r ?? _status.value
+    })
+  }
+})
+
+onUnmounted(async () => {
+  if (props.context === 'home' || props.context === 'notifications') {
+    // Silently update data after status is off-screen
+    cacheStatus(status.value, true).then((r) => {
+      status.value = r ?? _status.value
+
+      if (process.dev)
+
+        console.warn('CACHE (forced)', status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount)
     })
   }
 })
 
 const target = ref(null)
 const targetIsVisible = useElementVisibility(target)
-watch(
-  [targetIsVisible],
-  async () => {
-    if (!targetIsVisible.value && !props.inNotification && !props.isBeingQuoted) {
-      if (status.value instanceof Promise)
-        return
+// watch(
+//   [targetIsVisible, _status],
+//   async () => {
+//     if (!targetIsVisible.value && !props.inNotification && !props.isBeingQuoted) {
+//       if (status.value instanceof Promise)
+//         return
 
-      cacheStatus(status.value, true).then((aPost) => {
-        if (aPost && !(aPost instanceof Promise)) {
-          if (process.dev)
-            console.warn('Re-fetched', aPost.account.acct, aPost.id, aPost.repliesCount, aPost.reblogsCount, aPost.favouritesCount)
-          status.value = aPost
-        }
-      }).catch((e) => {
-        if (process.dev)
-          console.error((e as Error).message)
-      })
-    }
-  },
-)
+//       await cacheStatus(status.value, false).then((aPost) => {
+//         if (aPost && !(aPost instanceof Promise)) {
+//           if (process.dev)
+//             console.debug('CACHED (not forced)', aPost.account.acct, aPost.id, aPost.repliesCount, aPost.reblogsCount, aPost.favouritesCount)
+//           status.value = aPost
+//         }
+//       }).catch((e) => {
+//         if (process.dev)
+//           console.error((e as Error).message)
+//       })
+//     }
+//   },
+// )
 </script>
 
 <template>
@@ -177,7 +193,7 @@ watch(
       </div>
     </slot>
 
-    <div flex gap-3 :class="{ 'text-secondary': inNotification }">
+    <div flex gap-3>
       <template v-if="status.account.suspended && !forceShow">
         <div flex="~col 1" min-w-0>
           <p italic>
@@ -274,6 +290,8 @@ watch(
             :toggle-quote="toggleQuote"
             :is-d-m="isDM"
             :is-last-status-in-conversation="props.isLastStatusInConversation"
+            :is-compact="false"
+            :target-is-visible="targetIsVisible"
           />
         </div>
       </template>

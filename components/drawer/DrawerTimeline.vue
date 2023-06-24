@@ -63,7 +63,7 @@ const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'fedi
       <div max-h-70dvh overscroll-y-contain overflow-y-auto overflow-x-hidden>
         <template v-for="item in posts" :key="item?.uri">
           <div px0 py4 me-3>
-            <StatusQuoteCard :status="item" context="account" :actions="true" :in-drawer="true" :in-notification="true" />
+            <StatusQuoteCard :status="item" context="account" :is-compact="true" />
           </div>
         </template>
         <div p5 text-secondary italic text-center mb-5dvh>

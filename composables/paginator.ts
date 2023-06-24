@@ -1,6 +1,9 @@
 import type { Paginator, WsEvents, mastodon } from 'masto'
 import type { Ref } from 'vue'
+import { useFeeds } from './discovery/feeds'
 import type { PaginatorState } from '~/types'
+
+const { shouldBeCached } = useFeeds()
 
 export function usePaginator<T, P, U = T>(
   _paginator: Paginator<T[], P>,
@@ -36,7 +39,7 @@ export function usePaginator<T, P, U = T>(
       s.on(eventType, async (wsEvent) => {
         if ('uri' in wsEvent) {
           try {
-            const status = await cacheStatus(wsEvent, true)
+            const status = (shouldBeCached(wsEvent)) ? await cacheStatus(wsEvent) : wsEvent
             const index = prevItems.value.findIndex((i: any) => i.id === status.id)
             if (index >= 0)
               prevItems.value.splice(index, 1)
@@ -57,8 +60,8 @@ export function usePaginator<T, P, U = T>(
       })
 
       // TODO: update statuses
-      s.on('status.update', (status) => {
-        cacheStatus(status, true)
+      s.on('status.update', async (aStatus) => {
+        const status = (shouldBeCached(aStatus)) ? await cacheStatus(aStatus) : aStatus
 
         const data = items.value as mastodon.v1.Status[]
         const index = data.findIndex(s => s.id === status.id)
