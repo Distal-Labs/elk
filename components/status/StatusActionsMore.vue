@@ -285,7 +285,7 @@ function showFavoritedAndBoostedBy() {
             />
           </template>
           <template v-else>
-            <template v-if="!hideMentionAccount ?? false">
+            <template v-if="status.account && status.account.acct && (!hideMentionAccount ?? false)">
               <CommonDropdownItem
                 :text="$t('menu.mention_account', [`@${status.account.acct}`])"
                 icon="i-ri:at-line"

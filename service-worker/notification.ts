@@ -89,7 +89,7 @@ export function createNotificationOptions(
       if (notification.type === 'favourite' || notification.type === 'reblog' || notification.type === 'mention')
         notificationOptions.data.url = `${user.server}/@${user.account.username}/${notification.status.id}`
     }
-    else if (notification.type === 'follow') {
+    else if (notification.type === 'follow' && notification.account.acct !== null) {
       notificationOptions.data.url = `${user.server}/@${notification.account.acct}`
     }
   }

@@ -169,7 +169,7 @@ const targetIsVisible = refDebounced(refThrottled(useElementVisibility(target), 
             <div i-ri:repeat-fill text-green w-16px h-16px />
           </div>
           <template v-if="currentUser">
-            <AccountHoverWrapper :account="status.account">
+            <AccountHoverWrapper v-if="status.account && status.account.acct" :account="status.account">
               <NuxtLink :to="getAccountRoute(status.account)" rounded-full>
                 <AccountBigAvatar :account="status.account" />
               </NuxtLink>

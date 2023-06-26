@@ -15,6 +15,8 @@ export interface FeedOptions {
   excludeBirdsite: boolean
   excludeNSFW: boolean
   excludeReplies: boolean
+  // Metadata attributes
+  excludeAPIIncompatibleSoftware: boolean
 
   [key: string]: boolean
   [key: number]: boolean
@@ -130,6 +132,16 @@ function excludeReplies<T extends mastodon.v1.Status>(item: T) {
   ) || !shouldNeverBeExcluded(item)
 }
 
+function excludeAPIIncompatibleSoftware<T extends mastodon.v1.Status>(item: T) {
+  const t = item.uri.search(/[\/]endpoints[\/]|[\/]notes[\/]|[\/]profiles[\/]|[\/]objects[\/]|[\/]calckey[\/]|gup.pe|/ig)
+  if (t > 0)
+    console.warn(item.uri, t)
+  return !(
+    t > 0
+
+  ) // || !shouldNeverBeExcluded(item)
+}
+
 const availableTransforms: FeedTransform = {
   // Account attributes
   alwaysLargeAccounts,
@@ -145,6 +157,8 @@ const availableTransforms: FeedTransform = {
   excludeBirdsite,
   excludeNSFW,
   excludeReplies,
+  // Metadata attributes
+  excludeAPIIncompatibleSoftware,
 }
 
 function makeFeed<T extends mastodon.v1.Status>(steps: FeedOptions[]): Feed<T> {
@@ -174,6 +188,8 @@ const DEFAULT__PUBLIC_TIMELINE_PREFERENCES: FeedOptions = {
   excludeBirdsite: true,
   excludeNSFW: true,
   excludeReplies: true,
+  // Metadata attributes
+  excludeAPIIncompatibleSoftware: true,
 }
 
 const DEFAULT__CACHING_PREFERENCES: FeedOptions = {
@@ -191,6 +207,8 @@ const DEFAULT__CACHING_PREFERENCES: FeedOptions = {
   excludeBirdsite: true,
   excludeNSFW: true,
   excludeReplies: true,
+  // Metadata attributes
+  excludeAPIIncompatibleSoftware: true,
 }
 
 const DEFAULT__ENRICHMENT_PREFERENCES: FeedOptions = {
@@ -208,6 +226,8 @@ const DEFAULT__ENRICHMENT_PREFERENCES: FeedOptions = {
   excludeBirdsite: true,
   excludeNSFW: true,
   excludeReplies: false,
+  // Metadata attributes
+  excludeAPIIncompatibleSoftware: true,
 }
 
 const publicTimelineFeed = makeFeed([DEFAULT__PUBLIC_TIMELINE_PREFERENCES])
