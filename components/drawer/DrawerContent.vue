@@ -3,7 +3,7 @@ import type { DrawerContextOptionsType, DrawerContextType } from '~/types'
 
 const info = useBuildInfo()
 
-const drawerContext = ref<DrawerContextType>('posts')
+const drawerContext = ref<DrawerContextType>('discover-accounts')
 
 const { posts: trendingPosts, isPostUpdateInProgress, tags: trendingTags, featuredTagName, selectFeaturedTag, isTagUpdateInProgress, trendSource, updateTrends } = useTrends()
 
