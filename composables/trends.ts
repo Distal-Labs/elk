@@ -112,7 +112,7 @@ async function fetchTrendingPosts(): Promise<void> {
   }
   else {
     const federatedPosts = await bulkFederatePosts(data.value.map(_ => _.uri))
-    trendingPosts.value = federatedPosts.sort((a, b) => sortPosts(a, b)).slice(0, 40)
+    trendingPosts.value = federatedPosts.sort((a, b) => sortPosts(a, b)).slice(0, 20)
   }
 
   isPostUpdateInProgress.value = false
