@@ -643,7 +643,7 @@
   },
   "user": {
     "add_existing": "Add an existing account",
-    "server_address_label": "Mastodon Server Address",
+    "server_address_label": "Which server hosts your Mastodon account?",
     "sign_in_desc": "Sign in to follow profiles or hashtags, favorite, share and reply to posts, or interact from your account on a different server.",
     "sign_in_notice_title": "Viewing Mastodon public data",
     "sign_out_account": "Sign out {0}",
