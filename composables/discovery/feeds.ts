@@ -84,7 +84,7 @@ function excludeNewAccounts<T extends mastodon.v1.Status>(item: T) {
 
 function excludeSpammyAccounts<T extends mastodon.v1.Status>(item: T) {
   return !(
-    (item.account.displayName.toLowerCase().includes('nuop') === true)
+    (item.account.username.toLowerCase().includes('nuop') === true)
     || (item.account.statusesCount / ((((Date.now() - Date.parse(item.account.createdAt))) / (86400000)))) > 288
   ) || !shouldNeverBeExcluded(item)
 }
