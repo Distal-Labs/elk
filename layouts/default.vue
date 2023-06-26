@@ -42,10 +42,10 @@ const appContainerClass = computed(() => {
       overflow-y-hidden
       overscroll-y-contain
       content-between w-full
-      class="native:grid native:sm:grid-cols-[auto_1fr] native:lg:grid-cols-[auto_minmax(600px,3fr)_2fr"
+      class="native:grid native:sm:flex native:sm:w-full native:sm:justify-center native:md:h-100dvh native:md:grid-cols-[minmax(70px,80px)_minmax(600px,2fr)] native:lg:grid-cols-[minmax(70px,80px)_600px_minmax(275px,340px)] native:xl:grid-cols-[minmax(275px,1fr)_600px_auto]"
       sm="flex w-full justify-center"
       md="flex w-full h-100dvh justify-center grid-cols-[minmax(70px,80px)_minmax(600px,2fr)]"
-      lg="flex w-full h-100dvh justify-center grid grid-cols-[minmax(70px,80px)_600px_minmax(275px,390px)]"
+      lg="flex w-full h-100dvh justify-center grid grid-cols-[minmax(70px,80px)_600px_minmax(275px,340px)]"
       xl="flex w-full h-100dvh justify-center grid grid-cols-[minmax(275px,1fr)_600px_auto]"
       :class="appContainerClass"
     >
@@ -150,21 +150,22 @@ const appContainerClass = computed(() => {
       <aside
         v-if="shouldRenderRightNav && isHydrated && !wideLayout"
         hidden justify-start
-        native="me-0 w-auto"
+        native="block mx-0 px-0 min-w-275px max-w-340px h-100vh"
+        lg="block mx-0 px-0 min-w-275px max-w-340px h-100vh"
         xl="block mx-0 px-0 min-w-275px max-w-390px h-100vh"
       >
         <div
           flex="~ col" lt-lg-items-center hidden
           overscroll-y-contain
-          lg="block h-100dh pb0 ps4 pt2 min-w-275px max-w-390px"
+          lg="block h-100dh pb0 ps4 pt2 min-w-275px max-w-340px"
           xl="block py0 ps2 pt2 w-350px max-w-full"
         >
           <template v-if="shouldRenderRightNav">
             <slot name="right">
-              <div v-show="!isUserAdjustingSettings" hidden overscroll-y-contain xl="block sticky top-0 my0 mx0 pt0 pb2" overflow-visible>
-                <div hidden xl="grid grid-rows-[auto_minmax(80vh,90vh)] gap-4 pl2">
-                  <SearchWidget hidden xl="block sticky" />
-                  <DrawerContent hidden xl="block overflow-y-hidden" />
+              <div v-show="!isUserAdjustingSettings" hidden overscroll-y-contain lg="block sticky top-0 my0 mx0 pt0 pb2" overflow-visible>
+                <div hidden lg="grid grid-rows-[auto_minmax(80vh,87vh)] gap-4 pl2" xl="grid grid-rows-[auto_minmax(80vh,90vh)] gap-4 pl2">
+                  <SearchWidget hidden lg="block sticky" />
+                  <DrawerContent hidden lg="block overflow-y-hidden" />
                 </div>
               </div>
             </slot>

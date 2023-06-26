@@ -31,7 +31,7 @@ const countConversations = $computed(() => {
 <template>
   <nav sm:px3 flex="~ col gap2" shrink text-size-base leading-normal md:text-xl h-full my-1 place-content-evenly xl:place-content-start overflow-y-auto>
     <NavSideItem :text="$t('nav.home')" to="/home" icon="i-ri:home-5-line" user-only :command="command" :replace="true" />
-    <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" xl:hidden :command="command" :replace="true" />
+    <NavSideItem :text="$t('nav.search')" to="/search" icon="i-ri:search-line" lg:hidden :command="command" :replace="true" />
     <NavSideItem v-if="!isShortWindow" :text="$t('nav.explore')" :to="isHydrated ? `/${currentServer}/explore` : '/explore'" icon="i-ri:hashtag" :command="command" :replace="true" />
     <NavSideItem :text="$t('nav.notifications')" to="/notifications" icon="i-ri:notification-4-line" user-only :command="command" :replace="true">
       <template #icon>

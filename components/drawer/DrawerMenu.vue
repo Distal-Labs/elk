@@ -16,7 +16,7 @@ const mask = useMask()
 </script>
 
 <template>
-  <div hidden xl="block" pt-4 px-2 w-full>
+  <div hidden lg="block" pt-4 px-2 w-full>
     <div flex="~" items-center justify-between>
       <VDropdown :distance="0" placement="top-start" strategy="fixed" @apply-show="mask.show()" @apply-hide="mask.hide()">
         <DrawerMenuButton
