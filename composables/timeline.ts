@@ -18,7 +18,11 @@ function removeFilteredItems(items: mastodon.v1.Status[], context: mastodon.v1.F
   if (context === 'public')
     return applyPublicTimelineFeed([...items].filter(isFiltered).filter(isReblogFiltered))
 
-  return [...items].filter(isFiltered).filter(isReblogFiltered)
+  const statusForNonPublicContexts = [...items].filter(isFiltered).filter(isReblogFiltered)
+  if (context === 'home')
+    return statusForNonPublicContexts.filter(_ => _.visibility !== 'direct')
+
+  return statusForNonPublicContexts
 }
 
 async function cacheItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext): Promise<mastodon.v1.Status[]> {
