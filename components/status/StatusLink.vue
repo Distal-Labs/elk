@@ -23,13 +23,11 @@ function go(evt: MouseEvent | KeyboardEvent) {
   if (!checkLogin())
     return
 
-  if (evt.metaKey || evt.ctrlKey) {
+  if (evt.metaKey || evt.ctrlKey)
     window.open(statusRoute.href)
-  }
-  else {
-    cacheStatus(props.status)
+
+  else
     router.push(statusRoute)
-  }
 }
 </script>
 

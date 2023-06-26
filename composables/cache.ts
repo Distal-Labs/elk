@@ -260,8 +260,9 @@ export async function fetchStatus(statusId: string, force = false): Promise<mast
     }
     else if (cached instanceof Promise) {
       if (process.dev)
-        console.warn('Returning promise', statusId)
-      return cached
+        console.warn('Awaiting promise', statusId)
+      const t = await cached
+      return t
     }
     else if (typeof cached === 'number') {
       if ([401, 403, 418].includes(cached)) {
@@ -355,8 +356,9 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
     }
     else if (cachedAuthoritative instanceof Promise) {
       if (process.dev)
-        console.warn('Returning promise', statusUri)
-      return cachedAuthoritative
+        console.warn('Awaiting promise', statusUri)
+      const t = await cachedAuthoritative
+      return t
     }
     else if (typeof cachedAuthoritative === 'number') {
       if ([401, 403, 418].includes(cachedAuthoritative)) {
@@ -662,7 +664,7 @@ export function fetchAccountByHandle(str?: string, force = false): Promise<masto
   if (!accountWebfinger.includes(currentServer.value)) {
     if (process.dev)
       // eslint-disable-next-line no-console
-      console.info(`Remote domain is authoritative, so redirecting resolution request for account: ${accountWebfinger}`)
+      console.debug(`Remote domain is authoritative, so redirecting resolution request for account: ${accountWebfinger}`)
     return federateRemoteAccount(accountWebfinger, force)
   }
 
@@ -686,43 +688,56 @@ export function fetchAccountByHandle(str?: string, force = false): Promise<masto
   return promise
 }
 
-async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false) {
+async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false, interaction = false) {
   const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(post.id)
 
   try {
     const authoritativeURI = post.reblog ? post.reblog.uri : post.uri
-    const authoritativePost = await fetchAuthoritativeStatus(authoritativeURI, force)
+    const authoritativePost = await fetchAuthoritativeStatus(authoritativeURI, force && !interaction)
 
-    if (authoritativePost !== null) {
-      post.reblogsCount = authoritativePost.reblogsCount
-      post.repliesCount = authoritativePost.repliesCount
-      post.favouritesCount = authoritativePost.favouritesCount
+    if ((authoritativePost !== null)) {
+      if (!interaction) {
+        post.reblogsCount = authoritativePost.reblogsCount
+        post.repliesCount = authoritativePost.repliesCount
+        post.favouritesCount = authoritativePost.favouritesCount
 
-      if (post.reblog) {
-        post.reblog.reblogsCount = authoritativePost.reblogsCount
-        post.reblog.repliesCount = authoritativePost.repliesCount
-        post.reblog.favouritesCount = authoritativePost.favouritesCount
+        if (post.reblog) {
+          post.reblog.reblogsCount = authoritativePost.reblogsCount
+          post.reblog.repliesCount = authoritativePost.repliesCount
+          post.reblog.favouritesCount = authoritativePost.favouritesCount
 
-        // if (process.dev)
+          // if (process.dev)
+          //   // eslint-disable-next-line no-console
+          //   console.debug('Status (reblogged) cached after enrichment:', post.reblog.id, post.reblog.account.acct, post.reblog.repliesCount, post.reblog.reblogsCount, post.reblog.favouritesCount)
+        }
+        // else if (process.dev) {
         //   // eslint-disable-next-line no-console
-        //   console.debug('Status (reblogged) cached after enrichment:', post.reblog.id, post.reblog.account.acct, post.reblog.repliesCount, post.reblog.reblogsCount, post.reblog.favouritesCount)
+        //   console.debug('Status cached after enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
+        // }
+
+        if (process.dev && force && !interaction) {
+          // // eslint-disable-next-line no-console
+          console.warn('ENRICH (FORCED)', post.account.acct, post.id, post.repliesCount, post.reblogsCount, post.favouritesCount)
+        }
+        cache.set(localStatusIdCacheKey, post)
+        return post
       }
-      // else if (process.dev) {
-      //   // eslint-disable-next-line no-console
-      //   console.debug('Status cached after enrichment:', post.id, post.account.acct, post.repliesCount, post.reblogsCount, post.favouritesCount)
-      // }
 
-      if (process.dev && force)
-
-        console.warn('ENRICH (forced)', post.account.acct, post.id, post.repliesCount, post.reblogsCount, post.favouritesCount)
+      if (process.dev && force && !interaction)
+        // // eslint-disable-next-line no-console
+        console.warn('ENRICH (not forced)', post.account.acct, post.id, post.repliesCount, post.reblogsCount, post.favouritesCount)
 
       // Intentionally overriding cached value because this should be the most recent
       cache.set(localStatusIdCacheKey, post)
       return post
     }
-    else {
-      return post
+
+    if (process.dev) {
+      // // eslint-disable-next-line no-console
+      console.error('Authoritative post was null', post.account.acct, post.id, post.repliesCount, post.reblogsCount, post.favouritesCount)
     }
+    cache.set(localStatusIdCacheKey, post)
+    return post
   }
   catch (e) {
     console.error(`Status was cached without refreshing authoritative stats could not be fetched: '${post.uri}'`)
@@ -730,12 +745,44 @@ async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false) {
   }
 }
 
-export async function cacheStatus(post: mastodon.v1.Status, force?: boolean) {
+export async function cacheStatus(post: mastodon.v1.Status, force?: boolean, interaction = false) {
   const enrich = shouldBeEnriched(post)
   post.account.acct = extractAccountWebfinger(post.account.url)!
 
   if (post.reblog)
     post.reblog.account.acct = extractAccountWebfinger(post.reblog.account.url)!
+
+  const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(post.id)
+
+  if (!interaction && force) {
+    const cached: mastodon.v1.Status | Promise<mastodon.v1.Status> | undefined | null = cache.get(localStatusIdCacheKey, { allowStale: false, updateAgeOnGet: false })
+    if (cached) {
+      if (
+        force
+        && ('id' in cached)
+        && !(typeof cached === 'number')
+        && !(cached instanceof Promise)
+        && !(cached.reblog && !cached.reblog.account.url.includes(currentServer.value))
+        && (cached.id === post.id)
+      ) {
+        if (process.dev) {
+          console.warn(post.account.acct, post.id
+            , cached.repliesCount, cached.reblogsCount, cached.favouritesCount, cached.reblogged, cached.favourited, cached.bookmarked, cached.pinned, cached.muted
+            , '-->', post.repliesCount, post.reblogsCount, post.favouritesCount, post.reblogged, post.favourited, post.bookmarked, post.pinned, post.muted,
+          )
+        }
+
+        post.reblogged = cached.reblogged
+        post.favourited = cached.favourited
+        post.bookmarked = cached.bookmarked
+        post.pinned = cached.pinned
+        post.muted = cached.muted
+        post.repliesCount = cached.repliesCount
+        post.reblogsCount = cached.reblogsCount
+        post.favouritesCount = cached.favouritesCount
+      }
+    }
+  }
 
   // FOR PUBLIC and UNLISTED statuses, get the real stats here
   if (
@@ -744,9 +791,7 @@ export async function cacheStatus(post: mastodon.v1.Status, force?: boolean) {
       ((['public', 'unlisted'].includes(post.visibility.toString())) && (!post.uri.startsWith(`https://${currentServer.value}`)))
       || (post.reblog && (['public', 'unlisted'].includes(post.reblog.visibility.toString())) && (!post.reblog.uri.startsWith(`https://${currentServer.value}`)))
     ))
-    return enrichAndCacheStatus(post, force)
-
-  const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(post.id)
+    return enrichAndCacheStatus(post, force, interaction)
 
   if (process.dev) {
     if (force && cache.has(localStatusIdCacheKey) && enrich)

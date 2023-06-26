@@ -19,7 +19,7 @@ const main = ref<ComponentPublicInstance | null>(null)
 
 const { data: status, pending, refresh: refreshStatus } = useAsyncData(
   `status:${id}`,
-  async () => fetchStatus(id, true),
+  async () => fetchStatus(id, false),
   { watch: [isHydrated], immediate: isHydrated.value, default: () => shallowRef() },
 )
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 import type { mastodon } from 'masto'
+import { refAutoReset, refThrottled, watchImmediate } from '@vueuse/core'
 
 const props = withDefaults(defineProps<{
   status: mastodon.v1.Status
@@ -13,13 +14,13 @@ const props = withDefaults(defineProps<{
   toggleQuote?: () => Promise<void>
   isLastStatusInConversation?: boolean
   isDM?: boolean
-  targetIsVisible: boolean
+  targetIsVisible?: boolean
+  routeName?: string
 }>(), {
   isCompact: false,
   isBeingQuoted: false,
   isQuotableStatus: false,
   explainIsQuotableStatus: 'This post is not quotable',
-  targetIsVisible: false,
 })
 
 const focusEditor = inject<typeof noop>('focus-editor', noop)
@@ -30,19 +31,43 @@ const userSettings = useUserSettings()
 const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 
 const {
-  status,
+  status: post,
   isLoading,
   canReblog,
   toggleBookmark,
   toggleFavourite,
   toggleReblog,
+  isIncreasing,
 } = $(useStatusActions(props))
+
+const animateLoading = refAutoReset<{ favouritesCount: boolean; reblogsCount: boolean }>({ favouritesCount: false, reblogsCount: false }, 1000)
+const animateIncreasing = ref<{ favouritesCount: boolean; reblogsCount: boolean }>({ favouritesCount: true, reblogsCount: true })
+const _status = ref<mastodon.v1.Status>(props.status)
+const status = refThrottled<mastodon.v1.Status>(_status, 1000, false, true)
+
+watchImmediate([isLoading, isIncreasing, () => props.targetIsVisible], () => {
+  if (props.targetIsVisible && (isLoading.favourited || isLoading.reblogged)) {
+    animateLoading.value = { favouritesCount: isLoading.favourited, reblogsCount: isLoading.reblogged }
+    animateIncreasing.value = isIncreasing
+  }
+})
+
+watchImmediate(post, () => {
+  if (props.routeName === 'status')
+    return
+
+  if (
+    (post.favouritesCount !== props.status.favouritesCount)
+    || (post.reblogsCount !== props.status.reblogsCount)
+  )
+    _status.value = post
+})
 
 const { isConversationUnread, markConversationRead } = useConversations()
 
-const isStatusUnread = computed(() => isConversationUnread(status.id))
+const isStatusUnread = computed(() => isConversationUnread(status.value.id))
 
-const isPartOfDMThread = $computed(() => props.isLastStatusInConversation || props.isDM || status.visibility === 'direct')
+const isPartOfDMThread = $computed(() => props.isLastStatusInConversation || props.isDM || status.value.visibility === 'direct')
 
 const quoteButtonTooltip = $computed((): string => {
   if (!isQuotableStatus)
@@ -61,7 +86,7 @@ async function quote() {
       console.error(quoteButtonTooltip)
   }
   else {
-    navigateToStatus({ status, focusReply: false, quote: true })
+    navigateToStatus({ status: status.value, focusReply: false, quote: true })
   }
 }
 
@@ -71,7 +96,7 @@ function reply() {
   if (details)
     focusEditor()
   else
-    navigateToStatus({ status, focusReply: true, quote: false })
+    navigateToStatus({ status: status.value, focusReply: true, quote: false })
 }
 </script>
 
@@ -120,6 +145,8 @@ function reply() {
         active-icon="i-ri:repeat-fill"
         :active="!!status.reblogged"
         :disabled="isLoading.reblogged || !canReblog"
+        :loading="animateLoading.reblogsCount"
+        :is-increasing="animateIncreasing.reblogsCount"
         :command="command"
         @click="toggleReblog()"
       >
@@ -143,6 +170,8 @@ function reply() {
         :active-icon="useStarFavoriteIcon ? 'i-ri:star-fill' : 'i-ri:heart-3-fill'"
         :active="!!status.favourited"
         :disabled="isLoading.favourited"
+        :loading="animateLoading.favouritesCount"
+        :is-increasing="animateIncreasing.favouritesCount"
         :command="command"
         @click="toggleFavourite()"
       >

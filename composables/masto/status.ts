@@ -1,4 +1,5 @@
 import type { mastodon } from 'masto'
+import { refThrottled, watchWithFilter } from '@vueuse/core'
 
 type Action = 'reblogged' | 'favourited' | 'bookmarked' | 'pinned' | 'muted'
 type CountField = 'reblogsCount' | 'favouritesCount'
@@ -7,50 +8,17 @@ export interface StatusActionsProps {
   status: mastodon.v1.Status
   // Fedified extensions
   targetIsVisible?: boolean
+  pathName?: string
 }
 
 export function useStatusActions(props: StatusActionsProps) {
-  const _status = ref<mastodon.v1.Status>({ ...props.status })
-  const status = ref<mastodon.v1.Status>(_status.value)
-  const targetIsVisible = ref<boolean>(false)
+  const _status = ref<mastodon.v1.Status>(props.status)
+  const status = refThrottled(_status, 1000, false, false)
+  const __targetIsVisible = ref<boolean>(false)
+  const isIncreasing = ref<{ favouritesCount: boolean; reblogsCount: boolean }>({ favouritesCount: true, reblogsCount: true })
+  const isActionInProgress = ref<Action | null>(null)
 
   const { client } = $(useMasto())
-
-  watch(
-    () => props,
-    async (val) => {
-      _status.value = val.status
-      targetIsVisible.value = val.targetIsVisible ?? false
-
-      if (targetIsVisible.value) {
-        if (status.value instanceof Promise)
-          return
-
-        await fetchStatus(_status.value.id, false)
-          .then((fetchedResponse) => {
-            status.value = fetchedResponse ?? _status.value
-            if (process.dev)
-              console.warn('ACTION FETCHED (not forced)', fetchedResponse?.account.acct, fetchedResponse?.id, fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount)
-          }).catch((e) => {
-            if (process.dev)
-              console.error((e as Error).message)
-            status.value = _status.value
-          })
-
-        // await cacheStatus(status.value, true).then((aPost) => {
-        //   if (aPost && !(aPost instanceof Promise)) {
-        //     if (process.dev)
-        //       console.warn('ACTION CACHED (FORCED)', aPost.account.acct, aPost.id, aPost.repliesCount, aPost.reblogsCount, aPost.favouritesCount)
-        //     status.value = aPost
-        //   }
-        // }).catch((e) => {
-        //   if (process.dev)
-        //     console.error((e as Error).message)
-        // });
-      }
-    },
-    { deep: true, immediate: true },
-  )
 
   // Use different states to let the user press different actions right after the other
   const isLoading = $ref({
@@ -62,58 +30,193 @@ export function useStatusActions(props: StatusActionsProps) {
     muted: false,
   })
 
+  watchWithFilter(
+    () => props,
+    async (val) => {
+      // _status.value = val.status;
+
+      if (val.targetIsVisible)
+        __targetIsVisible.value = val.targetIsVisible
+        // console.warn('changed!', __targetIsVisible.value, status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount)
+
+      if (__targetIsVisible.value) {
+        if (status.value instanceof Promise) {
+          await status.value
+            .then((fetchedResponse) => {
+              if (fetchedResponse) {
+                if (process.dev) {
+                  console.warn('ACTION PROMISE AWAITED (not forced)', val.status?.account.acct, val.status?.id, val.status?.repliesCount, val.status?.reblogsCount, val.status?.favouritesCount
+                    , '-->', fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount,
+                  )
+                }
+                if (fetchedResponse?.reblogsCount > val.status.reblogsCount) {
+                  isIncreasing.value.reblogsCount = true
+                  isLoading.reblogged = true
+                  _status.value.reblogsCount = fetchedResponse.reblogsCount
+                }
+
+                if (fetchedResponse?.favouritesCount > val.status.favouritesCount) {
+                  isIncreasing.value.favouritesCount = true
+                  isLoading.favourited = true
+                  _status.value.favouritesCount = fetchedResponse.favouritesCount
+                }
+
+                if (
+                  (fetchedResponse.repliesCount > val.status.repliesCount)
+                  || (fetchedResponse.bookmarked !== val.status.bookmarked)
+                  || (fetchedResponse.pinned !== val.status.pinned)
+                  || (fetchedResponse.muted !== val.status.muted)
+                ) {
+                  _status.value.repliesCount = fetchedResponse.repliesCount
+                  _status.value.bookmarked = fetchedResponse.bookmarked
+                  _status.value.pinned = fetchedResponse.pinned
+                  _status.value.muted = fetchedResponse.muted
+                }
+              }
+              else {
+                if (process.dev)
+                  console.error('ACTION PROMISE AWAITED BUT RESOLVED TO NULL', status.value)
+                _status.value = val.status
+              }
+            })
+            .then(() => {
+              isLoading.reblogged = false
+              isLoading.favourited = false
+            })
+            .catch((e) => {
+              if (process.dev)
+                console.error((e as Error).message)
+            })
+          return
+        }
+
+        ((val.pathName === 'home' || isActionInProgress.value)
+          ? cacheStatus({ ...status.value }, true, val.pathName === 'home')
+          // ? cacheStatus({...status.value}, true, true)
+          : cacheStatus({ ...status.value }, val.pathName !== 'home', false))
+          // : fetchStatus(status.value.id, true) ?? {...status.value} )
+          .then((fetchedResponse) => {
+            if (!fetchedResponse)
+              return
+
+            if (process.dev) {
+              console.warn('FETCHED (FORCED)', val.status?.account.acct, val.status?.id, val.status?.repliesCount, val.status?.reblogsCount, val.status?.favouritesCount
+                , '-->', fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount,
+              )
+            }
+            if (fetchedResponse?.reblogsCount > _status.value.reblogsCount) {
+              isIncreasing.value.reblogsCount = true
+              isLoading.reblogged = true
+              _status.value.reblogsCount = fetchedResponse.reblogsCount
+            }
+
+            if (fetchedResponse?.favouritesCount > _status.value.favouritesCount) {
+              isIncreasing.value.favouritesCount = true
+              isLoading.favourited = true
+              _status.value.favouritesCount = fetchedResponse.favouritesCount
+            }
+
+            if (
+              (fetchedResponse.repliesCount > _status.value.repliesCount)
+              || (fetchedResponse.bookmarked !== val.status.bookmarked)
+              || (fetchedResponse.pinned !== val.status.pinned)
+              || (fetchedResponse.muted !== val.status.muted)
+            ) {
+              _status.value.repliesCount = fetchedResponse.repliesCount
+              _status.value.bookmarked = fetchedResponse.bookmarked
+              _status.value.pinned = fetchedResponse.pinned
+              _status.value.muted = fetchedResponse.muted
+            }
+          })
+          .then(() => {
+            isLoading.reblogged = false
+            isLoading.favourited = false
+          })
+          .catch((e) => {
+            if (process.dev)
+              console.error((e as Error).message)
+          })
+      }
+    },
+    { deep: true, immediate: false }, // , eventFilter: debounceFilter(1000),
+  )
+
   async function toggleStatusAction(action: Action, fetchNewStatus: () => Promise<mastodon.v1.Status>, countField?: CountField) {
     // check login
     if (!checkLogin())
       return
 
-    if (process.dev)
-
-      console.warn('ACTION', action, countField, status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount)
-
-    const prevCount = () => {
-      if (!countField)
-        return undefined
-
-      return status.value[countField]
-    }
+    const prevCount = countField ? status.value[countField] : null
 
     isLoading[action] = true
 
+    isActionInProgress.value = action
+
     const isCancel = status.value[action]
 
-    fetchNewStatus().then((newStatus) => {
-      // when the action is cancelled, the count is not updated highly likely (if they're the same)
-      // issue of Mastodon API
-      if (isCancel && countField && (prevCount() ?? 0) === newStatus[countField]) {
-        newStatus[countField] -= 1
-      }
-      else if (countField) {
-        newStatus[countField] = ((prevCount() ?? 0) + 1)
+    const updatedCount = isCancel ? ((prevCount ?? 0) - 1) : ((prevCount ?? 0) + 1)
 
-        if (newStatus.reblog)
-          newStatus.reblog[countField] = ((prevCount() ?? 0) + 1)
+    // if (process.dev)
+    //   console.warn('ACTION', action, countField, prevCount, updatedCount, status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount,
+    //   'reblog?', status.value.reblog?.account?.acct, status.value.reblog?.id, status.value.reblog?.repliesCount, status.value.reblog?.reblogsCount, status.value.reblog?.favouritesCount);
 
-        return cacheStatus(newStatus, true)
-      }
-      else {
-        return cacheStatus(newStatus, true)
-      }
-    }).then((cachedPost) => {
-      status.value = cachedPost ?? _status.value
-      isLoading[action] = false
-    })
-      .catch(() => {
-        isLoading[action] = false
-      })
     // Optimistic update
-    status.value[action] = !status.value[action]
+    const optimisticallyUpdatedStatus = status.value
 
-    if (countField)
-      status.value[countField] += status.value[action] ? 1 : -1
-    if (countField && status.value.reblog)
-      status.value.reblog[countField] = status.value[countField]
-    cacheStatus(status.value, false)
+    switch (action) {
+      case 'reblogged':
+        optimisticallyUpdatedStatus.reblogged = !status.value[action]
+        optimisticallyUpdatedStatus.reblogsCount = updatedCount
+        if (optimisticallyUpdatedStatus.reblog)
+          optimisticallyUpdatedStatus.reblog.reblogsCount = updatedCount
+        break
+      case 'favourited':
+        optimisticallyUpdatedStatus.favourited = !status.value[action]
+        optimisticallyUpdatedStatus.favouritesCount = updatedCount
+        if (optimisticallyUpdatedStatus.reblog)
+          optimisticallyUpdatedStatus.reblog.favouritesCount = updatedCount
+        break
+      case 'bookmarked':
+        optimisticallyUpdatedStatus.bookmarked = !status.value[action]
+        break
+      case 'pinned':
+        optimisticallyUpdatedStatus.pinned = !status.value[action]
+        break
+      case 'muted':
+        optimisticallyUpdatedStatus.muted = !status.value[action]
+        break
+      default:
+        break
+    }
+    // cacheStatus(optimisticallyUpdatedStatus, true, true)
+    // _status.value = optimisticallyUpdatedStatus
+
+    await fetchNewStatus().then(async (fetchedResponse) => {
+      // if (process.dev) {
+      //   console.warn('ACTION', action, countField, _status.value.account.acct, _status.value.id, _status.value.repliesCount, _status.value.reblogsCount, _status.value.favouritesCount
+      //   // , '===', optimisticallyUpdatedStatus.repliesCount, optimisticallyUpdatedStatus.reblogsCount, optimisticallyUpdatedStatus.favouritesCount
+      //   , '<--X', fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount
+      //   )
+      // }
+
+      const t = await cacheStatus(optimisticallyUpdatedStatus, true, true)
+      _status.value = t
+      return t
+    })
+      .then((fetchedResponse) => {
+        console.warn('ACTION -> CACHED (FORCED)', action, countField, _status.value.account.acct, _status.value.id, _status.value.repliesCount, _status.value.reblogsCount, _status.value.favouritesCount
+          // , '===', optimisticallyUpdatedStatus.repliesCount, optimisticallyUpdatedStatus.reblogsCount, optimisticallyUpdatedStatus.favouritesCount
+          , '===', fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount,
+        )
+        isLoading[action] = false
+        isActionInProgress.value = null
+      })
+      .catch(() => {
+      // _status.value = optimisticallyUpdatedStatus
+        isLoading[action] = false
+        isActionInProgress.value = null
+      })
+    return _status.value
   }
 
   const canReblog = $computed(() => {
@@ -125,13 +228,7 @@ export function useStatusActions(props: StatusActionsProps) {
 
   const toggleReblog = () => toggleStatusAction(
     'reblogged',
-    () => client.v1.statuses[status.value.reblogged ? 'unreblog' : 'reblog'](status.value.id).then(async (res) => {
-      if (status.value.reblogged) {
-        // returns the original status
-        return res.reblog!
-      }
-      return res
-    }),
+    () => client.v1.statuses[status.value.reblogged ? 'unreblog' : 'reblog'](status.value.id),
     'reblogsCount',
   )
 
@@ -165,5 +262,6 @@ export function useStatusActions(props: StatusActionsProps) {
     toggleFavourite,
     toggleBookmark,
     togglePin,
+    isIncreasing,
   }
 }

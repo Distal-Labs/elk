@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { mastodon } from 'masto'
 import { inject, ref } from 'vue'
-import { useElementVisibility } from '@vueuse/core'
+import { refDebounced, refThrottled, useElementVisibility } from '@vueuse/core'
 import { explainIsQuotable, isQuotable } from '../../composables/quote'
 
 const props = withDefaults(
@@ -88,58 +88,13 @@ async function toggleQuote() {
   }
 }
 
-onBeforeMount(async () => {
-  if (props.context === 'home' || props.context === 'notifications') {
-    // Silently update data after status is off-screen
-    // await fetchStatus(_status.value.uri, true).then((r) => {
-    fetchStatus(_status.value.uri, false).then((r) => {
-      if (process.dev)
-        // eslint-disable-next-line no-console
-        console.debug('FETCH (not forced)', _status.value.account.acct, _status.value.id, _status.value.repliesCount, _status.value.reblogsCount, _status.value.favouritesCount)
-      status.value = r ?? _status.value
-    })
-  }
-})
-
-onUnmounted(async () => {
-  if (props.context === 'home' || props.context === 'notifications') {
-    // Silently update data after status is off-screen
-    cacheStatus(status.value, true).then((r) => {
-      status.value = r ?? _status.value
-
-      if (process.dev)
-
-        console.warn('CACHE (forced)', status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount)
-    })
-  }
-})
-
 const target = ref(null)
-const targetIsVisible = useElementVisibility(target)
-// watch(
-//   [targetIsVisible, _status],
-//   async () => {
-//     if (!targetIsVisible.value && !props.inNotification && !props.isBeingQuoted) {
-//       if (status.value instanceof Promise)
-//         return
-
-//       await cacheStatus(status.value, false).then((aPost) => {
-//         if (aPost && !(aPost instanceof Promise)) {
-//           if (process.dev)
-//             console.debug('CACHED (not forced)', aPost.account.acct, aPost.id, aPost.repliesCount, aPost.reblogsCount, aPost.favouritesCount)
-//           status.value = aPost
-//         }
-//       }).catch((e) => {
-//         if (process.dev)
-//           console.error((e as Error).message)
-//       })
-//     }
-//   },
-// )
+// const targetIsVisible = refDebounced(refThrottled(useElementVisibility(target), 1000, true, false), 1100)
+const targetIsVisible = refDebounced(refThrottled(useElementVisibility(target), 2000, true, true), 2000)
 </script>
 
 <template>
-  <StatusLink ref="target" :status="status" :hover="hover && currentUser !== undefined">
+  <StatusLink :status="status" :hover="hover && currentUser !== undefined">
     <!-- Upper border -->
     <div :h="showUpperBorder ? '1px' : '0'" w-auto bg-border mb-1 />
 
@@ -281,8 +236,9 @@ const targetIsVisible = useElementVisibility(target)
             />
           </div>
           <StatusActions
-            v-if="actions !== false && !props.isBeingQuoted"
+            v-if="isHydrated && actions !== false && !props.isBeingQuoted"
             v-show="!getPreferences(userSettings, 'zenMode')"
+            ref="target"
             :status="status"
             :is-quotable-status="isQuotableStatus"
             :explain-is-quotable-status="explainIsQuotableStatus"
@@ -292,6 +248,7 @@ const targetIsVisible = useElementVisibility(target)
             :is-last-status-in-conversation="props.isLastStatusInConversation"
             :is-compact="false"
             :target-is-visible="targetIsVisible"
+            :route-name="$router.currentRoute.value.name?.toString()"
           />
         </div>
       </template>

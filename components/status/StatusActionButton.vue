@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { as = 'button', command, disabled, content, icon } = defineProps<{
+const { as = 'button', command, disabled, content, icon, loading, active, color, hover, elkGroupHover, isIncreasing } = defineProps<{
   text?: string | number
   content: string
   color: string
@@ -9,6 +9,8 @@ const { as = 'button', command, disabled, content, icon } = defineProps<{
   elkGroupHover: string
   active?: boolean
   disabled?: boolean
+  loading?: boolean
+  isIncreasing?: boolean
   as?: string
   command?: boolean
 }>()
@@ -43,6 +45,17 @@ useCommand({
     el.value?.dispatchEvent(clickEvent)
   },
 })
+
+const computedClass = $computed(() => {
+  if (disabled && !loading)
+    return 'text-secondary-light'
+  else if (active)
+    return color
+  else if (loading)
+    return color
+  else
+    return 'text-secondary'
+})
 </script>
 
 <template>
@@ -51,17 +64,17 @@ useCommand({
     v-bind="$attrs" ref="el"
     w-fit flex gap-1 items-center transition-all select-none
     rounded group
-    :hover=" !disabled ? hover : undefined"
+    :hover=" (!disabled) ? hover : undefined"
     focus:outline-none
     :focus-visible="hover"
-    :class="(disabled) ? 'text-secondary-light' : (active ? color : 'text-secondary')"
+    :class="computedClass"
     :aria-label="content"
     :disabled="disabled"
   >
     <CommonTooltip placement="bottom" :content="content">
       <div
         rounded-full p2
-        v-bind="disabled ? {} : {
+        v-bind="(disabled && !loading) ? {} : {
           'elk-group-hover': elkGroupHover,
           'group-focus-visible': elkGroupHover,
           'group-focus-visible:ring': '2 current',
@@ -71,7 +84,7 @@ useCommand({
       </div>
     </CommonTooltip>
 
-    <CommonAnimateNumber v-if="text !== undefined || $slots.text" :increased="active" text-sm>
+    <CommonAnimateNumber v-if="text !== undefined || $slots.text" :increased="(isIncreasing && loading) || active" text-sm>
       <span text-secondary-light>
         <slot name="text">{{ text }}</slot>
       </span>
