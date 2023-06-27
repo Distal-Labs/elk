@@ -40,57 +40,10 @@ export function useStatusActions(props: StatusActionsProps) {
         // console.warn('changed!', __targetIsVisible.value, status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount)
 
       if (__targetIsVisible.value) {
-        if (status.value instanceof Promise) {
-          await status.value
-            .then((fetchedResponse) => {
-              if (fetchedResponse) {
-                if (process.dev) {
-                  console.warn('ACTION PROMISE AWAITED (not forced)', val.status?.account.acct, val.status?.id, val.status?.repliesCount, val.status?.reblogsCount, val.status?.favouritesCount
-                    , '-->', fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount,
-                  )
-                }
-                if (fetchedResponse?.reblogsCount > val.status.reblogsCount) {
-                  isIncreasing.value.reblogsCount = true
-                  isLoading.reblogged = true
-                  _status.value.reblogsCount = fetchedResponse.reblogsCount
-                }
+        if (!isActionInProgress.value)
+          return;
 
-                if (fetchedResponse?.favouritesCount > val.status.favouritesCount) {
-                  isIncreasing.value.favouritesCount = true
-                  isLoading.favourited = true
-                  _status.value.favouritesCount = fetchedResponse.favouritesCount
-                }
-
-                if (
-                  (fetchedResponse.repliesCount > val.status.repliesCount)
-                  || (fetchedResponse.bookmarked !== val.status.bookmarked)
-                  || (fetchedResponse.pinned !== val.status.pinned)
-                  || (fetchedResponse.muted !== val.status.muted)
-                ) {
-                  _status.value.repliesCount = fetchedResponse.repliesCount
-                  _status.value.bookmarked = fetchedResponse.bookmarked
-                  _status.value.pinned = fetchedResponse.pinned
-                  _status.value.muted = fetchedResponse.muted
-                }
-              }
-              else {
-                if (process.dev)
-                  console.error('ACTION PROMISE AWAITED BUT RESOLVED TO NULL', status.value)
-                _status.value = val.status
-              }
-            })
-            .then(() => {
-              isLoading.reblogged = false
-              isLoading.favourited = false
-            })
-            .catch((e) => {
-              if (process.dev)
-                console.error((e as Error).message)
-            })
-          return
-        }
-
-        ((val.pathName === 'home' || isActionInProgress.value)
+        ((val.pathName === 'home' || !isActionInProgress.value)
           ? cacheStatus({ ...status.value }, true, val.pathName === 'home')
           // ? cacheStatus({...status.value}, true, true)
           : cacheStatus({ ...status.value }, val.pathName !== 'home', false))
@@ -152,7 +105,7 @@ export function useStatusActions(props: StatusActionsProps) {
 
     isActionInProgress.value = action
 
-    const isCancel = status.value[action]
+    const isCancel = status.value[action] === true
 
     const updatedCount = isCancel ? ((prevCount ?? 0) - 1) : ((prevCount ?? 0) + 1)
 
@@ -228,29 +181,29 @@ export function useStatusActions(props: StatusActionsProps) {
 
   const toggleReblog = () => toggleStatusAction(
     'reblogged',
-    () => client.v1.statuses[status.value.reblogged ? 'unreblog' : 'reblog'](status.value.id),
+    () => client.v1.statuses[!status.value.reblogged ? 'unreblog' : 'reblog'](status.value.id),
     'reblogsCount',
   )
 
   const toggleFavourite = () => toggleStatusAction(
     'favourited',
-    () => client.v1.statuses[status.value.favourited ? 'unfavourite' : 'favourite'](status.value.id),
+    () => client.v1.statuses[!status.value.favourited ? 'unfavourite' : 'favourite'](status.value.id),
     'favouritesCount',
   )
 
   const toggleBookmark = () => toggleStatusAction(
     'bookmarked',
-    () => client.v1.statuses[status.value.bookmarked ? 'unbookmark' : 'bookmark'](status.value.id),
+    () => client.v1.statuses[!status.value.bookmarked ? 'unbookmark' : 'bookmark'](status.value.id),
   )
 
   const togglePin = async () => toggleStatusAction(
     'pinned',
-    () => client.v1.statuses[status.value.pinned ? 'unpin' : 'pin'](status.value.id),
+    () => client.v1.statuses[!status.value.pinned ? 'unpin' : 'pin'](status.value.id),
   )
 
   const toggleMute = async () => toggleStatusAction(
     'muted',
-    () => client.v1.statuses[status.value.muted ? 'unmute' : 'mute'](status.value.id),
+    () => client.v1.statuses[!status.value.muted ? 'unmute' : 'mute'](status.value.id),
   )
 
   return {
