@@ -133,7 +133,7 @@ function excludeReplies<T extends mastodon.v1.Status>(item: T) {
 }
 
 function excludeAPIIncompatibleSoftware<T extends mastodon.v1.Status>(item: T) {
-  const t = item.uri.search(/[\/]endpoints[\/]|[\/]notes[\/]|[\/]profiles[\/]|[\/]objects[\/]|[\/]calckey[\/]|gup.pe|/ig)
+  const t = item.uri.search(/[\/]endpoints[\/]|[\/]notes[\/]|[\/]profiles[\/]|[\/]objects[\/]|[\/]calckey[\/]|gup.pe|group/ig)
   if (t > 0)
     console.warn(item.uri, t)
   return !(

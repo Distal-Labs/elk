@@ -28,7 +28,7 @@ watch(
       if (post.value instanceof Promise)
         return
 
-      await fetchStatus(notification.status.id, false).then((aPost) => {
+      await fetchStatus(notification.status.id).then((aPost) => {
         if (aPost)
           post.value = aPost
       }).catch((e) => {

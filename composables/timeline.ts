@@ -30,14 +30,14 @@ async function cacheItems(items: mastodon.v1.Status[], context: mastodon.v1.Filt
 
   await Promise.allSettled(items.map(async (item) => {
     if (shouldBeCached(item)) {
-      try {
-        const cachedItem = await cacheStatus(item)
-        results.push(cachedItem)
-      }
-      catch (e) {
-        console.error('Unable to cache status:', (e as Error).message)
-        results.push(item)
-      }
+      const cachedItem = await cacheStatus(item)
+        .then(r => r)
+        .catch((e) => {
+          console.error('Unable to cache status:', (e as Error).message)
+          return item
+        })
+
+      results.push(cachedItem)
     }
     else {
       results.push(item)

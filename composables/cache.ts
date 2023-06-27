@@ -125,11 +125,25 @@ function generateNotificationIdCacheKey(notificationId: string) {
   return `${currentServer.value}:${currentUser.value?.account?.id}:notification:${notificationId}`
 }
 
-async function federateRemoteStatus(statusUri: string, force = false): Promise<mastodon.v1.Status | null> {
-  if (cache.has(`stop:${statusUri}`)) {
+async function federateRemoteStatus(statusUri: string): Promise<mastodon.v1.Status | null> {
+  if (shouldStopProcessing(statusUri)) {
     if (process.dev)
       // eslint-disable-next-line no-console
       console.debug(`Skipping further processing for invalid status URI: ${statusUri}`)
+    return Promise.resolve(null)
+  }
+
+  if (
+    (statusUri.trim().length === 0)
+    || !statusUri.startsWith('https')
+    || (statusUri.search(/[\/]endpoints[\/]|[\/]notes[\/]|[\/]profiles[\/]|[\/]objects[\/]|[\/]calckey[\/]|gup.pe|group/ig) !== -1)
+    || !(isReachableDomain(statusUri))
+  ) {
+    if (process.dev)
+      console.warn(`Skipping further processing for invalid status URI: ${statusUri}`)
+
+    cacheStopProcessingFlag(generateStatusIdCacheKeyAccessibleToCurrentUser(statusUri))
+    cacheStopProcessingFlag(generateAuthoritativeStatusCacheKey(statusUri))
     return Promise.resolve(null)
   }
 
@@ -141,51 +155,65 @@ async function federateRemoteStatus(statusUri: string, force = false): Promise<m
     return fetchStatus(statusUri.split('/').pop() ?? statusUri.replace(`https://${currentServer.value}/`, ''))
   }
 
-  if (statusUri.search(/^\d+$/) !== -1) {
-    if (process.dev)
-      // eslint-disable-next-line no-console
-      console.info(`statusUri parameter was passed an ID, so redirecting resolution request: ${statusUri}`)
-
-    return fetchStatus(statusUri, force)
-  }
-
   const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(statusUri)
 
   const cached: mastodon.v1.Status | Promise<mastodon.v1.Status> | undefined | null | number = cache.get(localStatusIdCacheKey, { allowStale: false, updateAgeOnGet: false })
   if (cached) {
     if (
-      !force
-      && !!cached
+      !!cached
       && !(typeof cached === 'number')
       && !(cached instanceof Promise)
+      && ('uri' in cached)
       && (cached.uri === statusUri)
     ) {
-      return cacheStatus(cached, force)
+      return cacheStatus(cached)
     }
     else if (cached instanceof Promise) {
       if (process.dev)
-        console.warn('Returning promise', statusUri)
-      return cached
+        console.warn('Awaiting promise', statusUri)
+
+      const cachedPost = await cached.then(r => r)
+        .catch((e) => {
+          if (process.dev)
+            console.error(e as Error)
+          return null
+        })
+
+      if (cachedPost && cachedPost.uri === statusUri) {
+        return cacheStatus(cachedPost)
+      }
+      else {
+        cacheStopProcessingFlag(localStatusIdCacheKey)
+        return Promise.resolve(null)
+      }
     }
     else if (typeof cached === 'number') {
       if ([401, 403, 418].includes(cached)) {
         if (process.dev)
           console.error(`Current user is forbidden or lacks authorization to fetch status: ${statusUri}`)
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
-      if ([404].includes(cached) && !force) {
+      if ([404].includes(cached)) {
         if (process.dev)
           console.error(`The requested status URI cannot be found: ${statusUri}`)
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
       if ([429].includes(cached)) {
         if (process.dev)
           console.error('The request was rate-limited by the Mastodon server')
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
-      if ([500, 501, 503].includes(cached) && !force) {
+      if ([500, 501, 503].includes(cached)) {
         if (process.dev)
           console.error('The Mastodon server is unresponsive')
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
     }
@@ -195,53 +223,56 @@ async function federateRemoteStatus(statusUri: string, force = false): Promise<m
     .then(async (results) => {
       const post = results.statuses.pop()
       if (!post) {
-        console.error(`Status could not be federated, perhaps it no longer exists: '${statusUri}'`)
-        cache.set(localStatusIdCacheKey, 404)
+        if (process.dev)
+          console.error(`Status could not be federated, perhaps it no longer exists: '${statusUri}'`)
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return null
       }
-
-      return cacheStatus(post, force)
+      return cacheStatus(post)
     })
+    .then(r => r)
     .catch((e) => {
-      console.error(`Encountered error while federating status using URI '${statusUri}' | ${(e as Error)}`)
-      cache.set(localStatusIdCacheKey, null)
+      if (process.dev)
+        console.error(`Encountered error while federating status using URI '${statusUri}' | ${(e as Error)}`)
+      cacheStopProcessingFlag(localStatusIdCacheKey)
       return null
     })
-  cache.set(localStatusIdCacheKey, promise)
+  setCached(localStatusIdCacheKey, promise, false)
   return promise
 }
 
-export async function bulkFederatePosts(uriArray: string[], force = false): Promise<mastodon.v1.Status[]> {
-  const federatedPosts = Array<mastodon.v1.Status>()
-
-  await Promise.allSettled(uriArray.map(async (uri) => {
-    try {
-      const federatedPost = await federateRemoteStatus(uri, force)
-      if (federatedPost)
-        federatedPosts.push(federatedPost)
-    }
-    catch (e) {
-      console.error((e as Error).message)
-    }
-  }))
-  return federatedPosts
-}
-
-export async function fetchStatus(statusId: string, force = false): Promise<mastodon.v1.Status | null> {
-  if (cache.has(`stop:${statusId}`) || statusId.trim().length === 0) {
+export async function fetchStatus(idOrUri: string): Promise<mastodon.v1.Status | null> {
+  if (shouldStopProcessing(idOrUri)) {
     if (process.dev)
-      console.warn(`Skipping further processing for invalid status Id: ${statusId}`)
+      // eslint-disable-next-line no-console
+      console.debug(`Skipping further processing for invalid status ID: ${idOrUri}`)
     return Promise.resolve(null)
   }
 
-  // Handle scenario where the value of statusId is actually an URI
-  if (statusId.startsWith('h'))
-    return federateRemoteStatus(statusId, force)
+  if (
+    (idOrUri.trim().length === 0)
+    || (idOrUri.search(/[\/]endpoints[\/]|[\/]notes[\/]|[\/]profiles[\/]|[\/]objects[\/]|[\/]calckey[\/]|gup.pe|group/ig) !== -1)
+    || !(isReachableDomain(idOrUri))
+  ) {
+    if (process.dev)
+      console.warn(`Skipping further processing for invalid status identifier: ${idOrUri}`)
+
+    cacheStopProcessingFlag(generateStatusIdCacheKeyAccessibleToCurrentUser(idOrUri))
+    cacheStopProcessingFlag(generateAuthoritativeStatusCacheKey(idOrUri))
+    return Promise.resolve(null)
+  }
+
+  // Handle scenario where the value of identifier is an URI
+  if (idOrUri.startsWith('h') && !idOrUri.startsWith(`https://${currentServer.value}`))
+    return federateRemoteStatus(idOrUri)
+
+  const statusId = (idOrUri.search(/^\d+$/) === 0) ? idOrUri : (idOrUri.split('/').pop() ?? idOrUri.replace(`https://${currentServer.value}/`, ''))
 
   // handle invalid statusId
-  if ((statusId.search(/^\d+$/) === -1)) {
+  if (!statusId || (statusId.search(/^\d+$/) === -1)) {
     console.error(`Malformed or unrecognized Status ID: ${statusId}`)
-    cache.set(`stop:${statusId}`, 418)
+    cacheStopProcessingFlag(generateStatusIdCacheKeyAccessibleToCurrentUser(idOrUri))
+    cacheStopProcessingFlag(generateAuthoritativeStatusCacheKey(idOrUri))
     return Promise.resolve(null)
   }
 
@@ -249,61 +280,88 @@ export async function fetchStatus(statusId: string, force = false): Promise<mast
   const cached: mastodon.v1.Status | Promise<mastodon.v1.Status> | undefined | null = cache.get(localStatusIdCacheKey, { allowStale: false, updateAgeOnGet: false })
   if (cached) {
     if (
-      !force
-      && !!cached
+      !!cached
       && !(typeof cached === 'number')
       && !(cached instanceof Promise)
-      && !(cached.reblog && !cached.reblog.account.url.includes(currentServer.value))
+      && ('id' in cached)
       && (cached.id === statusId)
     ) {
-      return Promise.resolve(cached)
+      return cacheStatus(cached)
     }
     else if (cached instanceof Promise) {
       if (process.dev)
         console.warn('Awaiting promise', statusId)
-      const t = await cached
-      return t
+
+      const cachedPost = await cached.then(r => r)
+        .catch((e) => {
+          if (process.dev)
+            console.error(e as Error)
+          return null
+        })
+
+      if (cachedPost && cachedPost.id === statusId) {
+        return cacheStatus(cachedPost)
+      }
+      else {
+        cacheStopProcessingFlag(localStatusIdCacheKey)
+        return Promise.resolve(null)
+      }
     }
     else if (typeof cached === 'number') {
       if ([401, 403, 418].includes(cached)) {
         if (process.dev)
-          console.error(`Current user is forbidden or lacks authorization to fetch status: ${statusId}`)
+          console.error(`Current user is forbidden or lacks authorization to fetch status ID: ${statusId}`)
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
-      if ([404].includes(cached) && !force) {
+      if ([404].includes(cached)) {
         if (process.dev)
           console.error(`The requested status ID cannot be found: ${statusId}`)
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
       if ([429].includes(cached)) {
         if (process.dev)
           console.error('The request was rate-limited by the Mastodon server')
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
-      if ([500, 501, 503].includes(cached) && !force) {
+      if ([500, 501, 503].includes(cached)) {
         if (process.dev)
           console.error('The Mastodon server is unresponsive')
+
+        cacheStopProcessingFlag(localStatusIdCacheKey)
         return Promise.resolve(null)
       }
     }
   }
 
   const promise = useMastoClient().v1.statuses.fetch(statusId)
-    .then(async (post) => {
+    .then((post) => {
       // the current server is the authoritative server
       if (!post.reblog && post.uri.startsWith(`https://${currentServer.value}`)) {
         const accountWebfinger = extractAccountWebfinger(post.uri)!
         post.account.acct = accountWebfinger
 
-        cache.set(localStatusIdCacheKey, post)
+        setCached(localStatusIdCacheKey, post, true)
         // Intentionally overriding cached value because this should be the most recent
-        cache.set(generateAuthoritativeStatusCacheKey(post.uri), post)
-        return post
+        setCached(generateAuthoritativeStatusCacheKey(post.uri), post, true)
+        return Promise.resolve(post)
       }
 
-      return cacheStatus(post, force)
+      return cacheStatus(post)
     })
-  cache.set(localStatusIdCacheKey, promise)
+    .then(r => r)
+    .catch((e) => {
+      if (process.dev)
+        console.error(`Encountered error while federating status using id '${statusId}' | ${(e as Error)}`)
+      cacheStopProcessingFlag(localStatusIdCacheKey)
+      return null
+    })
+  setCached(localStatusIdCacheKey, promise, false)
   return promise
 }
 
@@ -321,7 +379,7 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
       // eslint-disable-next-line no-console
       console.info(`statusUri parameter was passed an ID, so redirecting resolution request: ${statusUri}`)
 
-    return fetchStatus(statusUri, force)
+    return fetchStatus(statusUri)
   }
 
   const splitUri = statusUri.replace('https://', '').split('/')
@@ -417,7 +475,22 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
   return promise
 }
 
-export function normalizeAndCacheAuthoritativeStatus(status: Partial<mastodon.v1.Status> | mastodon.v1.Status, force = true): mastodon.v1.Status {
+export function normalizeAndCacheThirdPartyStatus(thirdPartyPost: Partial<mastodon.v1.Status> | mastodon.v1.Status): mastodon.v1.Status {
+  const cacheKey = `public:status:${thirdPartyPost.uri}`
+
+  const cached: mastodon.v1.Status | undefined | null = cache.get(cacheKey)
+
+  if (cached)
+    return cached
+
+  const post = changeKeysToCamelCase(thirdPartyPost) as mastodon.v1.Status
+
+  cache.set(cacheKey, post, { ttl: 3600000 })
+
+  return post
+}
+
+function normalizeAndCacheAuthoritativeStatus(status: Partial<mastodon.v1.Status> | mastodon.v1.Status, force = true): mastodon.v1.Status {
   const post = changeKeysToCamelCase(status) as mastodon.v1.Status
 
   const authoritativeStatusCacheKey = generateAuthoritativeStatusCacheKey(post.uri)
@@ -813,6 +886,14 @@ export async function cacheStatus(post: mastodon.v1.Status, force?: boolean, int
 
 export function removeCachedStatus(statusId: string) {
   removeCached(generateStatusIdCacheKeyAccessibleToCurrentUser(statusId))
+}
+
+function cacheStopProcessingFlag(key: string, ttl = 3600000) {
+  cache.set(`stop:${key}`, key, { ttl })
+}
+
+function shouldStopProcessing(key: string) {
+  return cache.has(`stop:${key}`)
 }
 
 export function cacheAccount(account: mastodon.v1.Account, override?: boolean) {

@@ -1,5 +1,5 @@
 import type { mastodon } from 'masto'
-import { bulkFederatePosts, normalizeAndCacheTrendingTag } from './cache'
+import { normalizeAndCacheThirdPartyStatus } from './cache'
 import { STORAGE_KEY_TRENDS } from '~/constants'
 import { type FedifiedTrends } from '~/types'
 
@@ -108,11 +108,20 @@ async function fetchTrendingPosts(): Promise<void> {
 
   if (!currentUser.value) {
     // If user is not logged in, then no need to federate data
-    trendingPosts.value = data.value.map(post => normalizeAndCacheAuthoritativeStatus(post)).sort((a, b) => sortPosts(a, b)).slice(0, 40)
+    trendingPosts.value = data.value.map(post => normalizeAndCacheThirdPartyStatus(post)).sort((a, b) => sortPosts(a, b)).slice(0, 20)
   }
   else {
-    const federatedPosts = await bulkFederatePosts(data.value.map(_ => _.uri))
-    trendingPosts.value = federatedPosts.sort((a, b) => sortPosts(a, b)).slice(0, 20)
+    const posts = Array<mastodon.v1.Status>()
+
+    for await (const item of data.value) {
+      fetchStatus(item.uri)
+        .then((aPost) => {
+          if (aPost)
+            posts.push(aPost)
+        }).catch(() => undefined)
+    }
+
+    trendingPosts.value = posts.sort((a, b) => sortPosts(a, b))
   }
 
   isPostUpdateInProgress.value = false
