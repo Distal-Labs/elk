@@ -236,7 +236,7 @@ const targetIsVisible = refDebounced(refThrottled(useElementVisibility(target), 
             />
           </div>
           <StatusActions
-            v-if="isHydrated && actions !== false && !props.isBeingQuoted"
+            v-if="actions !== false && !props.isBeingQuoted"
             v-show="!getPreferences(userSettings, 'zenMode')"
             ref="target"
             :status="status"

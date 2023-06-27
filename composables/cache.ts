@@ -789,8 +789,8 @@ async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false, int
         // }
 
         if (process.dev && force && !interaction) {
-          // // eslint-disable-next-line no-console
-          console.warn('ENRICH (FORCED)', post.account.acct, post.id, post.repliesCount, post.reblogsCount, post.favouritesCount)
+          // eslint-disable-next-line no-console
+          console.info('ENRICH (FORCED)', post.account.acct, post.id, post.repliesCount, post.reblogsCount, post.favouritesCount)
         }
         cache.set(localStatusIdCacheKey, post)
         return post
@@ -839,7 +839,8 @@ export async function cacheStatus(post: mastodon.v1.Status, force?: boolean, int
         && (cached.id === post.id)
       ) {
         if (process.dev) {
-          console.warn(post.account.acct, post.id
+          // eslint-disable-next-line no-console
+          console.info(post.account.acct, post.id
             , cached.repliesCount, cached.reblogsCount, cached.favouritesCount, cached.reblogged, cached.favourited, cached.bookmarked, cached.pinned, cached.muted
             , '-->', post.repliesCount, post.reblogsCount, post.favouritesCount, post.reblogged, post.favourited, post.bookmarked, post.pinned, post.muted,
           )

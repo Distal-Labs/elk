@@ -44,8 +44,10 @@ const animateLoading = refAutoReset<{ favouritesCount: boolean; reblogsCount: bo
 const animateIncreasing = ref<{ favouritesCount: boolean; reblogsCount: boolean }>({ favouritesCount: true, reblogsCount: true })
 const _status = ref<mastodon.v1.Status>(props.status)
 const status = refThrottled<mastodon.v1.Status>(_status, 1000, false, true)
+const _targetIsVisible = ref<boolean>(props.targetIsVisible)
+const targetIsVisible = refThrottled(_targetIsVisible, 1000, false, false)
 
-watchImmediate([isLoading, isIncreasing, () => props.targetIsVisible], () => {
+watchImmediate([isLoading, isIncreasing, targetIsVisible], () => {
   if (props.targetIsVisible && (isLoading.favourited || isLoading.reblogged)) {
     animateLoading.value = { favouritesCount: isLoading.favourited, reblogsCount: isLoading.reblogged }
     animateIncreasing.value = isIncreasing
@@ -148,7 +150,7 @@ function reply() {
         :loading="animateLoading.reblogsCount"
         :is-increasing="animateIncreasing.reblogsCount"
         :command="command"
-        @click="toggleReblog()"
+        @click="$event => toggleReblog()"
       >
         <template v-if="status.reblogsCount && !getPreferences(userSettings, 'hideBoostCount')" #text>
           <CommonLocalizedNumber
@@ -173,7 +175,7 @@ function reply() {
         :loading="animateLoading.favouritesCount"
         :is-increasing="animateIncreasing.favouritesCount"
         :command="command"
-        @click="toggleFavourite()"
+        @click="$event => toggleFavourite()"
       >
         <template v-if="status.favouritesCount && !getPreferences(userSettings, 'hideFavoriteCount')" #text>
           <CommonLocalizedNumber

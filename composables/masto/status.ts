@@ -33,17 +33,19 @@ export function useStatusActions(props: StatusActionsProps) {
   watchWithFilter(
     () => props,
     async (val) => {
-      // _status.value = val.status;
+      if (val.targetIsVisible) {
+        if (process.dev)
+          // eslint-disable-next-line no-console
+          console.debug('Visible!', props.targetIsVisible, '-->', __targetIsVisible.value, status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount)
 
-      if (val.targetIsVisible)
         __targetIsVisible.value = val.targetIsVisible
-        // console.warn('changed!', __targetIsVisible.value, status.value.account.acct, status.value.id, status.value.repliesCount, status.value.reblogsCount, status.value.favouritesCount)
+      }
 
       if (__targetIsVisible.value) {
-        if (!isActionInProgress.value)
-          return;
+        // if (isActionInProgress.value && val.pathName !== 'home')
+        //   return;
 
-        ((val.pathName === 'home' || !isActionInProgress.value)
+        ((!isActionInProgress.value)
           ? cacheStatus({ ...status.value }, true, val.pathName === 'home')
           // ? cacheStatus({...status.value}, true, true)
           : cacheStatus({ ...status.value }, val.pathName !== 'home', false))
@@ -53,7 +55,7 @@ export function useStatusActions(props: StatusActionsProps) {
               return
 
             if (process.dev) {
-              console.warn('FETCHED (FORCED)', val.status?.account.acct, val.status?.id, val.status?.repliesCount, val.status?.reblogsCount, val.status?.favouritesCount
+              console.warn('FETCHED via SCROLL', val.status?.account.acct, val.status?.id, val.status?.repliesCount, val.status?.reblogsCount, val.status?.favouritesCount
                 , '-->', fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount,
               )
             }
@@ -91,7 +93,7 @@ export function useStatusActions(props: StatusActionsProps) {
           })
       }
     },
-    { deep: true, immediate: false }, // , eventFilter: debounceFilter(1000),
+    { deep: true, immediate: false },
   )
 
   async function toggleStatusAction(action: Action, fetchNewStatus: () => Promise<mastodon.v1.Status>, countField?: CountField) {
