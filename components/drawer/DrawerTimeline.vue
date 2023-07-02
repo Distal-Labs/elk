@@ -9,12 +9,11 @@ const { drawerContext, changeContext, trendSource, posts, tags, isLoading, label
     trendSource: 'feditrends' | 'fedified'
     posts?: mastodon.v1.Status[]
     tags?: mastodon.v1.Tag[]
-    selectedTagName?: string | null
+    selectedTagName: string
     isLoading: boolean
     label: string
   }>(),
   {
-    selectedTagName: null,
     isLoading: false,
     label: '',
   })
@@ -22,7 +21,7 @@ const { drawerContext, changeContext, trendSource, posts, tags, isLoading, label
 const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'feditrends'))
 </script>
 
-<template v-if="isHydrated && currentUser">
+<template v-if="currentUser">
   <div rounded-4 p0 m0 overflow-y-hidden overflow-x-visible>
     <div flex="~ row 1" min-w-full overflow-hidden>
       <div
@@ -53,13 +52,13 @@ const isSourceFeditrends = $computed(() => trendSource && (trendSource === 'fedi
         />
       </div>
     </div>
-    <div v-if="isHydrated && (drawerContext === 'discover-accounts')" max-h-100dvh overflow-y-hidden overflow-x-visible>
+    <div v-if="(drawerContext === 'discover-accounts')" max-h-100dvh overflow-y-hidden overflow-x-visible>
       <DrawerDiscoverAccounts :is-loading="isLoading" />
     </div>
-    <div v-if="isHydrated && (drawerContext === 'tags')" max-h-100dvh overflow-y-hidden overflow-x-visible>
-      <DrawerHashtagStream :is-loading="isLoading" :featured-tag-name="selectedTagName" />
+    <div v-if="(drawerContext === 'tags')" max-h-100dvh overflow-y-hidden overflow-x-visible>
+      <DrawerHashtagStream :is-loading="isLoading" :selected-tag-name="selectedTagName" />
     </div>
-    <div v-else-if="isHydrated && (drawerContext === 'posts')" max-h-100dvh overflow-y-hidden overflow-x-visible>
+    <div v-else-if="(drawerContext === 'posts')" max-h-100dvh overflow-y-hidden overflow-x-visible>
       <div max-h-70dvh overscroll-y-contain overflow-y-auto overflow-x-hidden>
         <template v-for="item in posts" :key="item?.uri">
           <div px0 py4 me-3>

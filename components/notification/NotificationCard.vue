@@ -3,40 +3,24 @@ import type { mastodon } from 'masto'
 import { ref } from 'vue'
 import { useElementVisibility } from '@vueuse/core'
 
-const { notification } = defineProps<{
+const { notification, isCompact } = defineProps<{
   notification: mastodon.v1.Notification
+  isCompact?: boolean
 }>()
 
 const post = ref<mastodon.v1.Status | null | undefined>(notification.status)
-
-const isDM = computed(() => (post.value && post.value.visibility === 'direct'))
 
 const { dismissOneNotification } = useNotifications()
 const target = ref(null)
 const targetIsVisible = useElementVisibility(target)
 
 watch(
-  [targetIsVisible],
-  async () => {
-    if (targetIsVisible.value) {
+  targetIsVisible,
+  (targetIsVisible) => {
+    if (targetIsVisible === true)
       dismissOneNotification(notification.id)
-    }
-    else if (notification.status && post.value && !targetIsVisible.value) {
-      if (!post.value)
-        post.value = notification.status
-
-      if (post.value instanceof Promise)
-        return
-
-      await fetchStatus(notification.status.id).then((aPost) => {
-        if (aPost)
-          post.value = aPost
-      }).catch((e) => {
-        if (process.dev)
-          console.error((e as Error).message)
-      })
-    }
   },
+  { immediate: true, deep: false },
 )
 </script>
 
@@ -98,7 +82,7 @@ watch(
       <!-- TODO: accept request -->
       <AccountCard :account="notification.account" />
     </template>
-    <template v-else-if="post && !isDM && notification.type === 'update'">
+    <template v-else-if="post && notification.type === 'update'">
       <StatusCard :status="post" :in-notification="true" :actions="false">
         <template #meta>
           <div flex="~" gap-1 items-center mt1>
@@ -111,11 +95,8 @@ watch(
         </template>
       </StatusCard>
     </template>
-    <template v-else-if="post && !isDM && (notification.type === 'status' || notification.type === 'mention' || notification.type === 'poll')">
-      <StatusCard :status="post" :actions="true" :in-notification="true" :in-drawer="false" />
-    </template>
-    <template v-else-if="isDM">
-      <div class="hidden" />
+    <template v-else-if="post">
+      <StatusCard :status="post" :actions="true" :in-notification="true" />
     </template>
     <template v-else>
       <!-- type 'favourite' and 'reblog' should always rendered by NotificationGroupedLikes -->

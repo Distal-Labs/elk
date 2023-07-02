@@ -37,6 +37,15 @@ const {
   dropZoneRef,
 } = $(useUploadMediaAttachment($$(draft)))
 
+const hasAttachmentsWithoutAltText = computed(() => {
+  if (draft.attachments.length === 0)
+    return false
+  else if (!usePreferences('excludeAltTextMinderInThread').value && !usePreferences('excludeAltTextMinderInNotifications').value)
+    return false
+
+  return !draft.attachments.every(attachment => attachment.description && attachment.description.length > 0)
+})
+
 let { shouldExpanded, isExpanded, isSending, isPublishDisabled, publishDraft, failedMessages, preferredLanguage, publishSpoilerText } = $(usePublish(
   {
     draftState,
@@ -315,6 +324,15 @@ onDeactivated(() => {
               <span>{{ error }}</span>
             </li>
           </ol>
+        </CommonErrorMessage>
+
+        <CommonErrorMessage v-else-if="hasAttachmentsWithoutAltText" described-by="alt-text-minder">
+          <header id="alt-text-minder" flex justify-between>
+            <div flex items-center gap-x-2>
+              <div aria-hidden="true" i-ri:error-warning-fill />
+              <p>{{ $t('state.alt_text_minder') }}</p>
+            </div>
+          </header>
         </CommonErrorMessage>
 
         <div relative flex-1 flex flex-col>

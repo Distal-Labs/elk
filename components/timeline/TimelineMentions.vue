@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // Default limit is 20 notifications, and servers are normally caped to 30
-const paginator = useMastoClient().v1.notifications.list({ limit: 30, types: ['mention'] })
-// const stream = useStreaming(client => client.v1.stream.streamUser())
+const paginator = useMastoClient().v1.notifications.list({ limit: 15, types: ['mention'] })
 </script>
 
 <template>
-  <NotificationPaginator v-bind="{ paginator }" />
+  <template v-if="!!currentUser">
+    <NotificationPaginator v-bind="{ paginator }" />
+  </template>
 </template>

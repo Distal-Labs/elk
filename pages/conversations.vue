@@ -19,6 +19,6 @@ useHydratedHead({
       </NuxtLink>
     </template>
 
-    <TimelineConversations v-if="isHydrated" />
+    <TimelineConversations v-if="currentUser && isHydrated" />
   </MainContent>
 </template>

@@ -26,6 +26,46 @@ export interface PreferencesSettings {
   experimentalVirtualScroller: boolean
   experimentalGitHubCards: boolean
   experimentalUserPicker: boolean
+  // Fedified extensions
+  excludeMissingAltTextInHome: boolean
+  excludeBoostsInHome: boolean
+  excludeBotsInHome: boolean
+  excludeDMsInHome: boolean
+  excludeNonThreadRepliesInHome: boolean
+  excludeThreadRepliesInHome: boolean
+  excludeCWsInHome: boolean
+  excludeSexuallyExplicitInHome: boolean
+  excludeTwitterBacklinksInHome: boolean
+  excludeTwitterCrosspostsInHome: boolean
+
+  excludeMissingAltTextInNotifications: boolean
+  excludeAltTextMinderInNotifications: boolean
+  excludeBoostsInNotifications: boolean
+  excludeDMsInNotifications: boolean
+  excludeMentionsFromUnfamiliarAccountsInNotifications: boolean
+  excludeNSFWInNotifications: boolean
+  excludeSpammersInNotifications: boolean
+
+  excludeCWsInMessages: boolean
+  excludeSexuallyExplicitInMessages: boolean
+  excludeUnfamiliarAccountsInMessages: boolean
+  excludeSpammersInMessages: boolean
+
+  excludeAltTextMinderInThread: boolean
+  excludeBotsInThread: boolean
+  excludeNewAccountsInThread: boolean
+  excludeCWsInThread: boolean
+  excludeSexuallyExplicitInThread: boolean
+
+  excludeMissingAltTextInGlobal: boolean
+  excludeBoostsInGlobal: boolean
+  excludeBotsInGlobal: boolean
+  excludeThreadRepliesInGlobal: boolean
+  excludeCWsInGlobal: boolean
+  excludeSexuallyExplicitInGlobal: boolean
+  excludeSpammersInGlobal: boolean
+
+  experimentalAntagonistFilterLevel: number
 }
 
 export interface UserSettings {
@@ -75,9 +115,49 @@ export const DEFAULT__PREFERENCES_SETTINGS: PreferencesSettings = {
   enablePinchToZoom: false,
   useStarFavoriteIcon: false,
   zenMode: false,
-  experimentalVirtualScroller: true,
+  experimentalVirtualScroller: false,
   experimentalGitHubCards: true,
   experimentalUserPicker: true,
+  // Fedified extensions
+  excludeMissingAltTextInHome: false,
+  excludeBoostsInHome: false,
+  excludeBotsInHome: false,
+  excludeDMsInHome: true,
+  excludeNonThreadRepliesInHome: false,
+  excludeThreadRepliesInHome: true,
+  excludeCWsInHome: false,
+  excludeSexuallyExplicitInHome: false,
+  excludeTwitterBacklinksInHome: true,
+  excludeTwitterCrosspostsInHome: false,
+
+  excludeMissingAltTextInNotifications: false,
+  excludeAltTextMinderInNotifications: true,
+  excludeBoostsInNotifications: true,
+  excludeDMsInNotifications: true,
+  excludeNSFWInNotifications: false,
+  excludeMentionsFromUnfamiliarAccountsInNotifications: false,
+  excludeSpammersInNotifications: true,
+
+  excludeUnfamiliarAccountsInMessages: false,
+  excludeCWsInMessages: true,
+  excludeSexuallyExplicitInMessages: true,
+  excludeSpammersInMessages: true,
+
+  excludeAltTextMinderInThread: true,
+  excludeBotsInThread: true,
+  excludeNewAccountsInThread: true,
+  excludeCWsInThread: false,
+  excludeSexuallyExplicitInThread: true,
+
+  excludeMissingAltTextInGlobal: false,
+  excludeBoostsInGlobal: true,
+  excludeBotsInGlobal: true,
+  excludeThreadRepliesInGlobal: true,
+  excludeCWsInGlobal: true,
+  excludeSexuallyExplicitInGlobal: true,
+  excludeSpammersInGlobal: true,
+
+  experimentalAntagonistFilterLevel: 0,
 }
 
 export function getDefaultUserSettings(locales: string[]): UserSettings {

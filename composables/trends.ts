@@ -245,8 +245,8 @@ function updateTrendingTags(force: boolean): void {
 
 export async function initializeTrends(force = false) {
   if (force) {
-    trendingPosts.value = []
-    trendingTags.value = []
+    // trendingPosts.value = []
+    // trendingTags.value = []
     fetchTrendingPosts()
     fetchTrendingTags()
     return

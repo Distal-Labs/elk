@@ -1,7 +1,7 @@
 import { initializeTrends } from '~/composables/trends'
 
 export default defineNuxtPlugin(() => {
-  onNuxtReady(() => {
-    initializeTrends(false)
+  onNuxtReady(async () => {
+    await initializeTrends(true)
   })
 })

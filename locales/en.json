@@ -374,6 +374,91 @@
       "description": "Edit your account settings in Mastodon UI",
       "label": "Account settings"
     },
+    "fedified": {
+      "feeds": {
+        "global": {
+          "exclude_boosts": "Exclude boosts",
+          "exclude_bots": "Exclude known (friendly) bots",
+          "exclude_cw": "Exclude posts with content warnings",
+          "exclude_missing_alt_text": "Exclude posts without alt text",
+          "exclude_sexually_explicit": "Exclude sexually explicit content",
+          "exclude_spammers": "Exclude spammers",
+          "exclude_thread": "Exclude threads",
+          "label": "Global Feed"
+        },
+        "home": {
+          "exclude_boosts": "Exclude boosts",
+          "exclude_bots": "Exclude known (friendly) bots",
+          "exclude_cw": "Exclude posts with content warnings",
+          "exclude_dms": "Exclude Direct Messages",
+          "exclude_missing_alt_text": "Exclude posts without alt text",
+          "exclude_nonthread_replies": "Exclude unthreaded replies",
+          "exclude_sexually_explicit": "Exclude sexually explicit content",
+          "exclude_threads": "Exclude threads",
+          "exclude_twitter_backlinks": "Exclude posts with Twitter backlinks",
+          "exclude_twitter_crossposts": "Exclude Twitter crossposts",
+          "label": "Home Feed"
+        },
+        "messages": {
+          "exclude_cw": "Exclude posts with content warnings",
+          "exclude_mentions_from_unfamiliar": "Exclude unfamiliar accounts",
+          "exclude_sexually_explicit": "Exclude sexually explicit content",
+          "exclude_spammers": "Exclude spammers",
+          "label": "Messages"
+        },
+        "notifications": {
+          "exclude_alt_text_minder_notifications": "Exclude posts about alt text",
+          "exclude_boosts": "Exclude boosts",
+          "exclude_dms": "Exclude Direct Messages",
+          "exclude_mentions_from_unfamiliar": "Exclude unfamiliar accounts",
+          "exclude_missing_alt_text": "Exclude posts without alt text",
+          "exclude_nsfw": "Exclude NSWF content",
+          "exclude_spammers": "Exclude spammers",
+          "label": "Notifications Feed"
+        },
+        "thread": {
+          "exclude_alt_text_minder_thread": "Exclude replies about alt text",
+          "exclude_bots": "Exclude replies from bots",
+          "exclude_cw": "Exclude posts with content warnings",
+          "exclude_new_accounts": "Exclude replies from new accounts",
+          "exclude_sexually_explicit": "Exclude sexually explicit content",
+          "label": "Replies"
+        },
+        "tooltips": {
+          "exclude_alt_text_minder_notifications": "Enable this option to omit notifications that discuss alt text. This will also enable a gentle reminder to include alt text when you compose a post.",
+          "exclude_alt_text_minder_thread": "Enable this option to omit replies that discuss alt text. This will also enable a gentle reminder to include alt text when you compose a post.",
+          "exclude_boosts": "Enable this option to omit most boosts from the {0} feed. Trending posts are always visible in the Explore section.",
+          "exclude_bots": "Enable this option to omit posts from known (friendly) bots from the {0} feed.",
+          "exclude_bots_thread": "Enable this option to omit replies from known bots.",
+          "exclude_cw": "Enable this option to omit posts from the {0} feed that are flagged by the original author as sensitive (i.e. have a Content Warning).",
+          "exclude_dms": "Enable this option to omit Direct Messages from the {0} feed. Direct Messages are always visible in the Messages section, and you will continue to receive push notifications as per your Mastodon account-level notifications preferences.",
+          "exclude_mentions_from_unfamiliar": "Enable this option if you want to omit any mention by an account that doesn't follow you or is not followed by you.",
+          "exclude_missing_alt_text": "Enable this option to omit posts from the {0} feed that have attachments but are missing alt text.",
+          "exclude_new_accounts": "Enable this option to omit posts from the {0} feed created by accounts opened within the last 30 days or < 50 followers. Posts by accounts that you follow are exempted.",
+          "exclude_new_accounts_thread": "Enable this option to omit replies from accounts opened within the last 30 days or having < 50 followers. Posts by accounts that you follow are exempted.",
+          "exclude_nonthread_replies": "Enable this option to omit standalone replies from the {0} feed. Replies that are part of a longer thread will remain visible.",
+          "exclude_nsfw": "Enable this option to omit posts from the {0} feed that are flagged by the original author as sensitive, pornographic, or otherwise NSFW (not safe for work). This also excludes all posts from accounts that have been found to publish NSFW media, but fail to properly flag the content.",
+          "exclude_nsfw_thread": "Enable this option to omit replies that are flagged by the original author as sensitive, pornographic, or otherwise NSFW (not safe for work). This also excludes replies from accounts that have been found to publish NSFW media, but fail to properly flag the content.",
+          "exclude_sexually_explicit": "Enable this option to omit posts from the {0} feed that are highly likely to contain pornographic or sexually explicit media. This also excludes all posts from accounts that have been found to publish such content, but fail to properly flag their media as sensitive.",
+          "exclude_spammers": "Enable this option to omit posts from the {0} feed that were created by accounts that are not labeled as bots but post with high frequency or send unsolicited DMs.",
+          "exclude_threads": "Enable this option to omit posts that are part of a longer thread from the {0} feed. The first post in a thread will remain visible.",
+          "exclude_twitter_backlinks": "Enable this option to omit posts from the {0} feed that contain links to Twitter-hosted content.",
+          "exclude_twitter_crossposts": "Enable this option to omit posts from the {0} feed that were auto-generated by Twitter-to-Mastodon crossposting services; the use of these services suggests that the Mastodon account is not actively monitored."
+        }
+      },
+      "label": "Fedified",
+      "thread": {
+        "exclude_bots": "Exclude replies from bots",
+        "exclude_new_accounts": "Exclude replies from new accounts",
+        "exclude_nsfw": "Exclude NSWF content",
+        "label": "Notifications Feed",
+        "tooltips": {
+          "exclude_bots": "Enable this option to omit replies from known bots",
+          "exclude_new_accounts": "Enable this option to omit replies by accounts opened within the last 30 days or < 50 followers. Posts by accounts that you follow are exempted.",
+          "exclude_nsfw": "Enable this option to omit replies that are flagged by the original author as sensitive, pornographic, or otherwise NSFW (not safe for work). This also excludes replies from accounts that have been found to publish NSFW media without properly flagging their content."
+        }
+      }
+    },
     "interface": {
       "color_mode": "Color Mode",
       "dark_mode": "Dark",
@@ -509,6 +594,7 @@
     "title": "Share with Elk"
   },
   "state": {
+    "alt_text_minder": "Please consider adding alt-text",
     "attachments_exceed_server_limit": "The number of attachments exceeded the limit per post.",
     "attachments_limit_error": "Limit per post exceeded",
     "edited": "(Edited)",

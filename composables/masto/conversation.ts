@@ -1,22 +1,8 @@
 import type { WsEvents, mastodon } from 'masto'
 
-const conversations = reactive<Record<string, undefined | [Promise<WsEvents>, mastodon.v1.Conversation[]]>>({})
-
-function removeFilteredItems(conversations: mastodon.v1.Conversation[], context: mastodon.v1.FilterContext): mastodon.v1.Conversation[] {
-  const isStrict = (filter: mastodon.v1.FilterResult) => filter.filter.filterAction === 'hide' && filter.filter.context.includes(context)
-  const isFiltered = (conversation: mastodon.v1.Conversation) => !conversation.lastStatus?.filtered?.find(isStrict)
-
-  return [...conversations].filter(isFiltered).filter(_ => _.accounts.findIndex(account => account.suspended === true) === -1)
-}
-
-export function filteredConversations(conversations: mastodon.v1.Conversation[]): mastodon.v1.Conversation[] {
-  // Remove conversations that contain statuses with one or more filtered statuses
-  const filteredConversations = removeFilteredItems(removeFilteredItems(conversations, 'home'), 'thread')
-
-  return filteredConversations
-}
-
 export function useConversations() {
+  const conversations = reactive<Record<string, undefined | [Promise<WsEvents>, mastodon.v1.Conversation[]]>>({})
+
   const accountId = currentUser.value?.account.id
 
   const { client, canStreaming } = $(useMasto())

@@ -276,8 +276,8 @@ export async function removePushNotificationData(user: UserLogin, fromSWPushMana
 
   const pwaEnabled = useAppConfig().pwaEnabled
   const pwa = useNuxtApp().$pwa
-  const registrationError = pwa?.registrationError === true
-  const unregister = pwaEnabled && !registrationError && pwa?.registrationError === true && fromSWPushManager
+  const registrationError = (pwa && ('registrationError' in pwa)) ? pwa?.registrationError === true : false
+  const unregister = pwaEnabled && !registrationError && fromSWPushManager
 
   // we remove the sw push manager if required and there are no more accounts with subscriptions
   if (unregister && (users.value.length === 0 || users.value.every(u => !u.pushSubscription))) {

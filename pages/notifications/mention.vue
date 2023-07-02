@@ -6,5 +6,5 @@ useHydratedHead({
 </script>
 
 <template>
-  <TimelineMentions v-if="isHydrated" />
+  <TimelineMentions v-if="currentUser && isHydrated" />
 </template>

@@ -29,8 +29,8 @@ const { data: context, pending: pendingContext, refresh: refreshContext } = useA
   { watch: [isHydrated], immediate: isHydrated.value, lazy: true, default: () => shallowRef() },
 )
 
-if (pendingContext)
-  watchOnce(pendingContext, scrollTo)
+// if (pendingContext)
+//   watchOnce(pendingContext, scrollTo)
 
 if (pending)
   watchOnce(pending, scrollTo)
@@ -141,10 +141,6 @@ onReactivated(() => {
   // The user will see the previous content first, and any changes will be updated to the UI when the request is completed
   refreshStatus()
   refreshContext()
-})
-onUnmounted(() => {
-  // Silently update data when leaving the page
-  refreshStatus()
 })
 </script>
 

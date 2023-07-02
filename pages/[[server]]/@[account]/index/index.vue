@@ -10,8 +10,8 @@ const { t } = useI18n()
 
 const account = await fetchAccountByHandle(handle)
 
-function reorderAndFilter(items: mastodon.v1.Status[]) {
-  return reorderedTimeline(items, 'account')
+function preprocess(items: mastodon.v1.Status[]) {
+  return preprocessTimeline(items, 'account')
 }
 
 const paginator = account ? useMastoClient().v1.accounts.listStatuses(account.id, { limit: 30, excludeReplies: true }) : undefined
@@ -27,7 +27,7 @@ if (account) {
   <div>
     <AccountTabs />
     <template v-if="paginator && account">
-      <TimelinePaginator :paginator="paginator" :preprocess="reorderAndFilter" context="account" :account="account" />
+      <TimelinePaginator :paginator="paginator" :preprocess="preprocess" context="account" :account="account" />
     </template>
   </div>
 </template>

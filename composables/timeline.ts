@@ -1,9 +1,31 @@
 import type { mastodon } from 'masto'
-import { useFeeds } from './discovery/feeds'
 
 const maxDistance = 10
 const maxSteps = 1000
-const { applyPublicTimelineFeed, shouldBeCached } = useFeeds()
+
+function conversationFilterContext(conversations: mastodon.v1.Conversation[], context: mastodon.v1.FilterContext): mastodon.v1.Conversation[] {
+  const isStrict = (filter: mastodon.v1.FilterResult) => filter.filter.filterAction === 'hide' && filter.filter.context.includes(context)
+  const isFiltered = (conversation: mastodon.v1.Conversation) => !conversation.lastStatus?.filtered?.find(isStrict)
+
+  return [...conversations].filter(isFiltered)
+}
+
+export function applyConversationFilterContext(feedItems: mastodon.v1.Conversation[]): mastodon.v1.Conversation[] {
+  // Remove conversations that contain statuses with one or more filtered statuses
+  return conversationFilterContext(conversationFilterContext(feedItems, 'home'), 'thread')
+}
+
+function notificationFilterContext(notifications: mastodon.v1.Notification[], context: mastodon.v1.FilterContext): mastodon.v1.Notification[] {
+  const isStrict = (filter: mastodon.v1.FilterResult) => filter.filter.filterAction === 'hide' && filter.filter.context.includes(context)
+  const isFiltered = (notification: mastodon.v1.Notification) => !notification.status?.filtered?.find(isStrict)
+
+  return [...notifications].filter(isFiltered)
+}
+
+export function applyNotificationFilterContext(feedItems: mastodon.v1.Notification[]): mastodon.v1.Notification[] {
+  // Remove notifications that should be filtered at the Mastodon API-level
+  return notificationFilterContext(feedItems, 'notifications')
+}
 
 // Checks if (b) is a reply to (a)
 function areStatusesConsecutive(a: mastodon.v1.Status, b: mastodon.v1.Status) {
@@ -11,47 +33,18 @@ function areStatusesConsecutive(a: mastodon.v1.Status, b: mastodon.v1.Status) {
   return !!inReplyToId && (inReplyToId === a.reblog?.id || inReplyToId === a.id)
 }
 
-function removeFilteredItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext): mastodon.v1.Status[] {
+function applyStatusFilterContext(feedItems: mastodon.v1.Status[], context: mastodon.v1.FilterContext): mastodon.v1.Status[] {
   const isStrict = (filter: mastodon.v1.FilterResult) => filter.filter.filterAction === 'hide' && filter.filter.context.includes(context)
   const isFiltered = (item: mastodon.v1.Status) => (!item.reblog && item.account.id === currentUser.value?.account.id) || !item.filtered?.find(isStrict)
   const isReblogFiltered = (item: mastodon.v1.Status) => !item.reblog?.filtered?.find(isStrict)
-  if (context === 'public')
-    return applyPublicTimelineFeed([...items].filter(isFiltered).filter(isReblogFiltered))
 
-  const statusForNonPublicContexts = [...items].filter(isFiltered).filter(isReblogFiltered)
-  if (context === 'home')
-    return statusForNonPublicContexts.filter(_ => _.visibility !== 'direct')
-
-  return statusForNonPublicContexts
+  return feedItems.filter(isFiltered).filter(isReblogFiltered)
 }
 
-async function cacheItems(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext): Promise<mastodon.v1.Status[]> {
-  const results: mastodon.v1.Status[] = []
-
-  await Promise.allSettled(items.map(async (item) => {
-    if (shouldBeCached(item)) {
-      const cachedItem = await cacheStatus(item)
-        .then(r => r)
-        .catch((e) => {
-          console.error('Unable to cache status:', (e as Error).message)
-          return item
-        })
-
-      results.push(cachedItem)
-    }
-    else {
-      results.push(item)
-    }
-  }))
-
-  return results
-}
-
-export async function reorderedTimeline(items: mastodon.v1.Status[], context: mastodon.v1.FilterContext) {
+function reorderStatusTimeline<T extends mastodon.v1.Status>(items: T[]): T[] {
   let steps = 0
 
-  const filteredItems = removeFilteredItems(items, context)
-  const newItems = await cacheItems(filteredItems, context)
+  const newItems = items
 
   for (let i = newItems.length - 1; i > 0; i--) {
     for (let k = 1; k <= maxDistance && i - k >= 0; k++) {
@@ -74,7 +67,7 @@ export async function reorderedTimeline(items: mastodon.v1.Status[], context: ma
         if (areStatusesConsecutive(newItems[i - k], newItems[i])) {
           // If the next statuses are already ordered, move them all
           let j = i
-          for (; j < items.length - 1; j++) {
+          for (; j < newItems.length - 1; j++) {
             if (!areStatusesConsecutive(newItems[j], newItems[j + 1]))
               break
           }
@@ -88,4 +81,8 @@ export async function reorderedTimeline(items: mastodon.v1.Status[], context: ma
     }
   }
   return newItems
+}
+
+export function preprocessTimeline(processableItems: mastodon.v1.Status[], context: mastodon.v1.FilterContext): mastodon.v1.Status[] {
+  return reorderStatusTimeline(applyStatusFilterContext(processableItems, context))
 }

@@ -4,25 +4,19 @@ import { DynamicScrollerItem } from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import type { Paginator, WsEvents, mastodon } from 'masto'
 
-const { paginator, stream } = defineProps<{
+const { paginator, stream, preprocess } = defineProps<{
   paginator: Paginator<mastodon.v1.Conversation[], mastodon.DefaultPaginationParams>
   stream?: Promise<WsEvents>
+  preprocess?: (items: mastodon.v1.Conversation[]) => mastodon.v1.Conversation[]
 }>()
 
-const virtualScroller = false // $(usePreferences('experimentalVirtualScroller'))
-// const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
+const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
 
 const { formatNumber } = useHumanReadableNumber()
 </script>
 
 <template>
-  <CommonPaginator
-    :paginator="paginator"
-    :preprocess="filteredConversations"
-    :stream="stream"
-    :eager="3"
-    :virtual-scroller="virtualScroller"
-  >
+  <CommonPaginator v-bind="{ paginator, stream, preprocess, endMessage: 'End of messages that meet your filter criteria' }" :buffer="0" :virtual-scroller="virtualScroller">
     <template #updater="{ number, update }">
       <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="update">
         {{ $t('timeline.show_new_items', number, { named: { v: formatNumber(number) } }) }}

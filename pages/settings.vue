@@ -35,6 +35,14 @@ const isRootPath = computedEager(() => route.name === 'settings')
               :match="$route.path.startsWith('/settings/profile/')"
             />
             <SettingsItem
+              v-if="isHydrated && currentUser"
+              command
+              icon="i-ri:sparkling-line"
+              :text="$t('settings.fedified.label')"
+              to="/settings/fedified"
+              :match="$route.path.startsWith('/settings/fedified/')"
+            />
+            <SettingsItem
               command
               icon="i-ri-compasses-2-line"
               :text="isHydrated ? $t('settings.interface.label') : ''"

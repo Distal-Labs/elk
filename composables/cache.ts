@@ -1,17 +1,15 @@
 import { LRUCache } from 'lru-cache'
 import type { mastodon } from 'masto'
-import { useFeeds } from './discovery/feeds'
-
-const { shouldBeEnriched } = useFeeds()
+import { isEnrichable } from './discovery/feeds'
 
 // expire in an hour
 const cache = new LRUCache<string, any>({
   max: 1000,
-  ttl: 60000, // check every minute
+  ttl: 180000, // check every 3 minutes
   ttlAutopurge: true,
   allowStaleOnFetchAbort: true,
   allowStaleOnFetchRejection: true,
-  allowStale: true,
+  allowStale: false,
   noUpdateTTL: true,
   ttlResolution: 60000,
 })
@@ -230,7 +228,6 @@ async function federateRemoteStatus(statusUri: string): Promise<mastodon.v1.Stat
       }
       return cacheStatus(post)
     })
-    .then(r => r)
     .catch((e) => {
       if (process.dev)
         console.error(`Encountered error while federating status using URI '${statusUri}' | ${(e as Error)}`)
@@ -414,7 +411,8 @@ async function fetchAuthoritativeStatus(statusUri: string, force = false): Promi
     }
     else if (cachedAuthoritative instanceof Promise) {
       if (process.dev)
-        console.warn('Awaiting promise', statusUri)
+        // eslint-disable-next-line no-console
+        console.debug('Awaiting promise', statusUri)
       const t = await cachedAuthoritative
       return t
     }
@@ -485,7 +483,7 @@ export function normalizeAndCacheThirdPartyStatus(thirdPartyPost: Partial<mastod
 
   const post = changeKeysToCamelCase(thirdPartyPost) as mastodon.v1.Status
 
-  cache.set(cacheKey, post, { ttl: 3600000 })
+  cache.set(cacheKey, post)
 
   return post
 }
@@ -763,10 +761,12 @@ export function fetchAccountByHandle(str?: string, force = false): Promise<masto
 
 async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false, interaction = false) {
   const localStatusIdCacheKey = generateStatusIdCacheKeyAccessibleToCurrentUser(post.id)
+  if (shouldStopProcessing(localStatusIdCacheKey))
+    return post
 
   try {
     const authoritativeURI = post.reblog ? post.reblog.uri : post.uri
-    const authoritativePost = await fetchAuthoritativeStatus(authoritativeURI, force && !interaction)
+    const authoritativePost = await fetchAuthoritativeStatus(authoritativeURI)
 
     if ((authoritativePost !== null)) {
       if (!interaction) {
@@ -819,7 +819,7 @@ async function enrichAndCacheStatus(post: mastodon.v1.Status, force = false, int
 }
 
 export async function cacheStatus(post: mastodon.v1.Status, force?: boolean, interaction = false) {
-  const enrich = shouldBeEnriched(post)
+  const enrich = isEnrichable(post)
   post.account.acct = extractAccountWebfinger(post.account.url)!
 
   if (post.reblog)

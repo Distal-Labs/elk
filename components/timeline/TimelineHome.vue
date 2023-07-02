@@ -1,29 +1,87 @@
 <script setup lang="ts">
-import type { Paginator, mastodon } from 'masto'
+import type { mastodon } from 'masto'
+import { useFeeds } from '~/composables/discovery'
 
-const paginator = ref<Paginator<mastodon.v1.Status[], mastodon.v1.ListTimelineParams>>()
+const paginator = useMastoClient().v1.timelines.listHome({ limit: 20 })
+const stream = $(useStreaming(client => client.v1.stream.streamUser()))
+const processableItems = ref<mastodon.v1.Status[]>([])
 
-const { data, pending, refresh: refreshTimeline } = useAsyncData(
-  `${currentServer.value}:${currentUser.value}:timeline:home`,
-  async () => paginator.value = useMastoClient().v1.timelines.listHome({ limit: 15 }),
-  { watch: [isHydrated], immediate: isHydrated.value, default: () => shallowRef() },
+const excludeMissingAltTextInHome = usePreferences('excludeMissingAltTextInHome')
+const excludeBoostsInHome = usePreferences('excludeBoostsInHome')
+const excludeBotsInHome = usePreferences('excludeBotsInHome')
+const excludeDMsInHome = usePreferences('excludeDMsInHome')
+const excludeNonThreadRepliesInHome = usePreferences('excludeNonThreadRepliesInHome')
+const excludeThreadRepliesInHome = usePreferences('excludeThreadRepliesInHome')
+const excludeCWsInHome = usePreferences('excludeCWsInHome')
+const excludeSexuallyExplicitInHome = usePreferences('excludeSexuallyExplicitInHome')
+const excludeTwitterBacklinksInHome = usePreferences('excludeTwitterBacklinksInHome')
+const excludeTwitterCrosspostsInHome = usePreferences('excludeTwitterCrosspostsInHome')
+const experimentalAntagonistFilterLevel = usePreferences('experimentalAntagonistFilterLevel')
+
+const { data: feeds } = useAsyncData(
+  async () => {
+    if (process.dev) {
+      if (!processableItems.value || processableItems.value.length === 0)
+        return useFeeds()
+    }
+
+    if (
+      (experimentalAntagonistFilterLevel.value < 5)
+    ) {
+      return useFeeds()
+    }
+
+    else {
+      const relationships: mastodon.v1.Relationship[] = await useMastoClient().v1.accounts.fetchRelationships(processableItems.value.map(x => x.account.id))
+        .then(rels => rels)
+        .catch((e) => {
+          if (process.dev)
+            console.error('Unable to retrieve relationships', (e as Error).message)
+          return []
+        })
+
+      return useFeeds(relationships)
+    }
+  },
+  {
+    watch: [
+      processableItems,
+      excludeMissingAltTextInHome,
+      excludeBoostsInHome,
+      excludeBotsInHome,
+      excludeDMsInHome,
+      excludeNonThreadRepliesInHome,
+      excludeThreadRepliesInHome,
+      excludeCWsInHome,
+      excludeSexuallyExplicitInHome,
+      excludeTwitterBacklinksInHome,
+      excludeTwitterCrosspostsInHome,
+      experimentalAntagonistFilterLevel,
+      currentUser,
+    ],
+    immediate: true,
+    default: () => shallowRef(useFeeds()),
+  },
 )
 
-const stream = $(useStreaming(client => client.v1.stream.streamUser()))
-function reorderAndFilter(items: mastodon.v1.Status[]) {
-  return reorderedTimeline(items, 'home')
-}
+function preprocessHomeFeed(_items: mastodon.v1.Status[]) {
+  // Avoid updating processableItems unless that's going to change the feed logic
+  if (experimentalAntagonistFilterLevel.value === 5) {
+    processableItems.value = _items.filter(feeds.value.shouldBeInHome)
 
-onReactivated(() => {
-  // Silently update data when leaving the page
-  // The user will see the previous content first, and any changes will be updated to the UI when the request is completed
-  refreshTimeline()
-})
+    return preprocessTimeline([...processableItems.value], 'home')
+  }
+  else {
+    return preprocessTimeline(_items.filter(useFeeds().shouldBeInHome), 'home')
+  }
+}
 </script>
 
 <template>
-  <div>
-    <PublishWidget draft-key="home" border="b base" />
-    <TimelinePaginator v-if="paginator" v-bind="{ paginator, stream }" :preprocess="reorderAndFilter" context="home" />
-  </div>
+  <template v-if="!!currentUser">
+    <div>
+      <PublishWidget draft-key="home" border="b base" />
+      <TimelinePaginator v-bind="{ paginator, stream }" :preprocess="preprocessHomeFeed" :buffer="1" context="home" />
+    </div>
+  </template>
 </template>

@@ -4,12 +4,12 @@ import { DynamicScrollerItem } from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import type { Paginator, WsEvents, mastodon } from 'masto'
 
-const { paginator, stream, account, buffer = 10, endMessage, isCompact = false } = defineProps<{
+const { paginator, stream, account, context, isCompact = false } = defineProps<{
   paginator: Paginator<mastodon.v1.Status[], mastodon.v1.ListAccountStatusesParams>
   stream?: Promise<WsEvents>
   context?: mastodon.v2.FilterContext
   account?: mastodon.v1.Account
-  preprocess?: (items: mastodon.v1.Status[]) => mastodon.v1.Status[] | Promise<mastodon.v1.Status[]>
+  preprocess?: (items: mastodon.v1.Status[]) => mastodon.v1.Status[]
   buffer?: number
   endMessage?: boolean | string
   // Fedified extensions

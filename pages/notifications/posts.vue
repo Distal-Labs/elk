@@ -6,5 +6,5 @@ useHydratedHead({
 </script>
 
 <template>
-  <TimelineNotificationsPosts v-if="isHydrated" />
+  <TimelineNotificationsPosts v-if="currentUser && isHydrated" />
 </template>

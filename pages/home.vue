@@ -26,6 +26,6 @@ useHydratedHead({
       </NuxtLink>
     </template>
 
-    <TimelineHome v-if="isHydrated" />
+    <TimelineHome v-if="currentUser && isHydrated" />
   </MainContent>
 </template>

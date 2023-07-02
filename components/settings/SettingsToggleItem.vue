@@ -1,16 +1,26 @@
 <script setup lang="ts">
-const { disabled = false } = defineProps<{
+const { disabled = false, tooltip, text } = defineProps<{
   icon?: string
   text?: string
   checked: boolean
   disabled?: boolean
+  tooltip?: string
 }>()
+
+const showTooltip = computed(() => {
+  return tooltip
+})
+
+const el = ref<HTMLButtonElement | null>(null)
+const parentEl = useParentElement()
 </script>
 
 <template>
   <button
-    exact-active-class="text-primary"
-    block w-full group focus:outline-none text-start
+    ref="el"
+    v-tooltip.bottom-start="{ content: showTooltip, html: false, theme: 'tooltip', container: parentEl }"
+    exact-active-class="text-primary" block w-full group focus:outline-none
+    text-start
     :disabled="disabled"
     :class="disabled ? 'opacity-50 cursor-not-allowed' : ''"
   >

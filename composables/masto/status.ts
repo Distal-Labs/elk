@@ -55,7 +55,8 @@ export function useStatusActions(props: StatusActionsProps) {
               return
 
             if (process.dev) {
-              console.warn('FETCHED via SCROLL', val.status?.account.acct, val.status?.id, val.status?.repliesCount, val.status?.reblogsCount, val.status?.favouritesCount
+              // eslint-disable-next-line no-console
+              console.debug('FETCHED via SCROLL', val.status?.account.acct, val.status?.id, val.status?.repliesCount, val.status?.reblogsCount, val.status?.favouritesCount
                 , '-->', fetchedResponse?.repliesCount, fetchedResponse?.reblogsCount, fetchedResponse?.favouritesCount,
               )
             }

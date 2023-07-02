@@ -13,14 +13,16 @@ const {
   eventType = 'update',
   preprocess,
   endMessage = true,
+  buffer,
 } = defineProps<{
   paginator: Paginator<T[], O>
   keyProp?: keyof T
   virtualScroller?: boolean
   stream?: Promise<WsEvents>
   eventType?: 'notification' | 'update'
-  preprocess?: (items: (U | T)[]) => U[] | Promise<U[]>
+  preprocess?: (items: (U | T)[]) => U[]
   endMessage?: boolean | string
+  buffer?: number
 }>()
 
 defineSlots<{
@@ -45,7 +47,7 @@ defineSlots<{
 
 const { t } = useI18n()
 
-const { items, prevItems, update, state, endAnchor, error } = usePaginator(paginator, $$(stream), eventType, preprocess)
+const { items, prevItems, update, state, endAnchor, error } = usePaginator(paginator, $$(stream), eventType, preprocess, buffer)
 
 function createEntry(item: any) {
   items.value = [...items.value, preprocess?.([item]) ?? item]

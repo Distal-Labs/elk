@@ -3,15 +3,18 @@
 import { DynamicScrollerItem } from 'vue-virtual-scroller'
 import type { Paginator, WsEvents, mastodon } from 'masto'
 import type { GroupedAccountLike, NotificationSlot } from '~/types'
+import { useFeeds } from '~/composables/discovery'
 
-const { paginator, stream, inDrawer = false } = defineProps<{
+const { paginator, stream, isCompact = false } = defineProps<{
   paginator: Paginator<mastodon.v1.Notification[], mastodon.v1.ListNotificationsParams>
   stream?: Promise<WsEvents>
-  inDrawer?: boolean
+  // Fedified extensions
+  isCompact?: boolean
 }>()
 
-const virtualScroller = false // TODO: fix flickering issue with virtual scroll
-// const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
+const { formatNumber } = useHumanReadableNumber()
+const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
+const processableItems = ref<mastodon.v1.Notification[]>([])
 
 const groupCapacity = Number.MAX_VALUE // No limit
 
@@ -125,13 +128,84 @@ function groupItems(items: mastodon.v1.Notification[]): NotificationSlot[] {
   return results
 }
 
+const excludeMissingAltTextInNotifications = usePreferences('excludeMissingAltTextInNotifications')
+const excludeAltTextMinderInNotifications = usePreferences('excludeAltTextMinderInNotifications')
+const excludeBoostsInNotifications = usePreferences('excludeBoostsInNotifications')
+const excludeDMsInNotifications = usePreferences('excludeDMsInNotifications')
+const excludeNSFWInNotifications = usePreferences('excludeNSFWInNotifications')
+const excludeMentionsFromUnfamiliarAccountsInNotifications = usePreferences('excludeMentionsFromUnfamiliarAccountsInNotifications')
+const excludeSpammersInNotifications = usePreferences('excludeSpammersInNotifications')
+const experimentalAntagonistFilterLevel = usePreferences('experimentalAntagonistFilterLevel')
+
+const { data: feeds } = useAsyncData(
+  async () => {
+    if (!processableItems.value || processableItems.value.length === 0)
+      return useFeeds()
+
+    if (
+      (!excludeMentionsFromUnfamiliarAccountsInNotifications)
+      && (experimentalAntagonistFilterLevel.value < 5)
+    ) {
+      return useFeeds()
+    }
+
+    else {
+      const relationships: mastodon.v1.Relationship[] = await useMastoClient().v1.accounts.fetchRelationships(processableItems.value.map(x => x.account.id))
+        .then(rels => rels)
+        .catch((e) => {
+          if (process.dev)
+            console.error('Unable to retrieve relationships', (e as Error).message)
+          return []
+        })
+
+      return useFeeds(relationships)
+    }
+  },
+  {
+    watch: [
+      processableItems,
+      excludeMissingAltTextInNotifications,
+      excludeAltTextMinderInNotifications,
+      excludeBoostsInNotifications,
+      excludeDMsInNotifications,
+      excludeNSFWInNotifications,
+      excludeMentionsFromUnfamiliarAccountsInNotifications,
+      excludeSpammersInNotifications,
+      experimentalAntagonistFilterLevel,
+      currentUser,
+    ],
+    immediate: true,
+    default: () => shallowRef(useFeeds()),
+  },
+)
+
+/*
 function removeFiltered(items: mastodon.v1.Notification[]): mastodon.v1.Notification[] {
   return items.filter(item => !item.status?.filtered?.find(
     filter => filter.filter.filterAction === 'hide' && filter.filter.context.includes('notifications'),
   ))
 }
+*/
 
-function preprocess(items: NotificationSlot[]): NotificationSlot[] {
+function preprocessNotifications(_items: mastodon.v1.Notification[]): mastodon.v1.Notification[] {
+  if (!currentUser.value)
+    return Array<mastodon.v1.Notification>()
+
+  // Avoid updating processableItems unless that's going to change the feed logic
+  if (
+    (excludeMentionsFromUnfamiliarAccountsInNotifications.value === true)
+    || (experimentalAntagonistFilterLevel.value === 5)
+  ) {
+    processableItems.value = _items.filter(feeds.value.shouldBeInNotifications)
+
+    return applyNotificationFilterContext([...processableItems.value])
+  }
+  else {
+    return applyNotificationFilterContext(_items.filter(useFeeds().shouldBeInNotifications))
+  }
+}
+
+function preprocessAndGroupNotifications(items: NotificationSlot[]): NotificationSlot[] {
   const flattenedNotifications: mastodon.v1.Notification[] = []
   for (const item of items) {
     if (item.type === 'grouped-reblogs-and-favourites') {
@@ -150,20 +224,19 @@ function preprocess(items: NotificationSlot[]): NotificationSlot[] {
       flattenedNotifications.push(item)
     }
   }
-  return groupItems(removeFiltered(flattenedNotifications))
+  return groupItems(preprocessNotifications(flattenedNotifications))
 }
-
-const { formatNumber } = useHumanReadableNumber()
 </script>
 
 <!-- eslint-disable vue/attribute-hyphenation -->
 <template>
   <CommonPaginator
     :paginator="paginator"
-    :preprocess="preprocess"
     :stream="stream"
+    :preprocess="preprocessAndGroupNotifications"
+    :buffer="0"
     :virtualScroller="virtualScroller"
-    eventType="notification"
+    end-message="You are all caught up!"
   >
     <template #updater="{ number, update }">
       <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="() => { update(); }">
@@ -186,7 +259,7 @@ const { formatNumber } = useHumanReadableNumber()
           <NotificationCard
             v-else
             :notification="item"
-            :in-drawer="inDrawer"
+            :is-compact="isCompact"
             border="b base"
           />
         </DynamicScrollerItem>
@@ -205,7 +278,7 @@ const { formatNumber } = useHumanReadableNumber()
         <NotificationCard
           v-else
           :notification="item"
-          :in-drawer="inDrawer"
+          :is-compact="isCompact"
           border="b base"
         />
       </template>
