@@ -33,7 +33,7 @@ function toggleSelectedOption() {
 }
 
 // Default limit is 20 notifications, and servers are normally caped to 30
-const paginator = computed(() => useMastoClient().v1.notifications.list({ limit: 30, types: selectedNotificationTypes.value }))
+const paginator = computed(() => useMastoClient().v1.notifications.list({ limit: 15, types: selectedNotificationTypes.value }))
 const stream = useStreaming(client => client.v1.stream.streamUser())
 
 // const { clearNotifications } = useNotifications()

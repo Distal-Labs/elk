@@ -132,10 +132,10 @@ const timeago = useTimeAgo(() => derivedStatus.createdAt ?? Date.now(), timeAgoO
         />
       </div>
       <!-- END -->
-      <div flex justify-between>
+      <!-- <div flex justify-between>
         <div />
         <div text-2xl i-ri:mastodon-fill text-secondary />
-      </div>
+      </div> -->
     </div>
   </div>
 </template>

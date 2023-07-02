@@ -122,7 +122,7 @@ export function useNotifications() {
     }))
 
     const position = await client.v1.markers.fetch({ timeline: ['notifications'] })
-    const paginator = client.v1.notifications.list({ limit: 30 })
+    const paginator = client.v1.notifications.list({ limit: 15 })
     do {
       const result = await paginator.next()
       if (!result.done && result.value.length) {

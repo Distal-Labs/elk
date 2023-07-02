@@ -2,8 +2,8 @@
 import type { mastodon } from 'masto'
 import { useFeeds } from '~/composables/discovery'
 
-const paginator = useMastoClient().v1.conversations.list({ limit: 10 })
-const stream = $(useStreaming(client => client.v1.stream.streamDirectTimeline()))
+const paginator = useMastoClient().v1.conversations.list({ limit: 15 })
+const stream = useStreaming(client => client.v1.stream.streamDirectTimeline())
 const processableItems = ref<mastodon.v1.Conversation[]>([])
 
 const excludeUnfamiliarAccountsInMessages = usePreferences('excludeUnfamiliarAccountsInMessages')

@@ -287,7 +287,7 @@ function shouldBeInFeed<T extends mastodon.v1.Status>(item: T, feed: Feed<T>, on
 
 const DEFAULT__CACHING_PREFERENCES: FeedOptions = {
   // Metadata attributes
-  excludeDMs: false,
+  excludeDMs: true,
   // Account attributes
   alwaysLargeAccounts: false,
   excludeUnfamiliarAccounts: false,
@@ -376,6 +376,42 @@ function contentIsVulgarOrCondescending<T extends mastodon.v1.Status>(item: T) {
   )
 }
 
+function doesMeetReplySanityThreshold<T extends mastodon.v1.Status>(item: T, experimentalAntagonistFilterLevel: number, exemptAccountIds: string[]): boolean {
+  if (!isProcessableItem(item))
+    return false
+
+  if (!item.inReplyToAccountId || (item.inReplyToAccountId && (item.inReplyToAccountId === item.account.id)))
+    return true
+
+  if (exemptAccountIds.includes(item.account.id))
+    return true
+
+  switch (experimentalAntagonistFilterLevel) {
+    case 5:
+      if (!excludeUnfamiliarAccounts(item))
+        return false
+      // eslint-disable-next-line no-fallthrough
+    case 4:
+      if (contentIncludesQuestion(item))
+        return false
+      // eslint-disable-next-line no-fallthrough
+    case 3:
+      if (contentHasSealionPhrasing(item))
+        return false
+      // eslint-disable-next-line no-fallthrough
+    case 2:
+      if (contentMentionsContentWarning(item) || contentMentionsHashtag(item))
+        return false
+      // eslint-disable-next-line no-fallthrough
+    case 1:
+      if (contentIsVulgarOrCondescending(item))
+        return false
+      // eslint-disable-next-line no-fallthrough
+    default:
+      return true
+  }
+}
+
 export function useFeeds(relationships: mastodon.v1.Relationship[] = []) {
   const userSettings = useUserSettings()
 
@@ -384,42 +420,6 @@ export function useFeeds(relationships: mastodon.v1.Relationship[] = []) {
   const onlyAccountIds = relationships.filter(rel => (rel.followedBy || rel.following)).map(included => included.id)
   const excludeAccountIds = relationships.filter(rel => (rel.muting || rel.blocking || rel.domainBlocking || rel.blockedBy)).map(excluded => excluded.id)
   const exemptAccountIds = relationships.filter(rel => (rel.following)).map(included => included.id)
-
-  function doesMeetReplySanityThreshold<T extends mastodon.v1.Status>(item: T): boolean {
-    if (!isProcessableItem(item))
-      return false
-
-    if (!item.inReplyToAccountId || (item.inReplyToAccountId && (item.inReplyToAccountId === item.account.id)))
-      return true
-
-    if (exemptAccountIds.includes(item.account.id))
-      return true
-
-    switch (experimentalAntagonistFilterLevel) {
-      case 5:
-        if (!excludeUnfamiliarAccounts(item))
-          return false
-        // eslint-disable-next-line no-fallthrough
-      case 4:
-        if (contentIncludesQuestion(item))
-          return false
-        // eslint-disable-next-line no-fallthrough
-      case 3:
-        if (contentHasSealionPhrasing(item))
-          return false
-        // eslint-disable-next-line no-fallthrough
-      case 2:
-        if (contentMentionsContentWarning(item) || contentMentionsHashtag(item))
-          return false
-        // eslint-disable-next-line no-fallthrough
-      case 1:
-        if (contentIsVulgarOrCondescending(item))
-          return false
-        // eslint-disable-next-line no-fallthrough
-      default:
-        return true
-    }
-  }
 
   const DEFAULT__HOME_PREFERENCES: FeedOptions = {
     // Metadata attributes
@@ -592,6 +592,6 @@ export function useFeeds(relationships: mastodon.v1.Relationship[] = []) {
     shouldBeInThread: (item: mastodon.v1.Status) => shouldBeInFeed(item, threadFeed, onlyAccountIds, excludeAccountIds, exemptAccountIds),
     shouldBeInTrending: (item: mastodon.v1.Status) => shouldBeInFeed(item, trendingFeed, onlyAccountIds, excludeAccountIds),
     shouldBeInGlobal: (item: mastodon.v1.Status) => shouldBeInFeed(item, globalFeed, onlyAccountIds, excludeAccountIds),
-    doesMeetReplySanityThreshold,
+    doesMeetReplySanityThreshold: (item: mastodon.v1.Status) => doesMeetReplySanityThreshold(item, experimentalAntagonistFilterLevel, exemptAccountIds),
   }
 }

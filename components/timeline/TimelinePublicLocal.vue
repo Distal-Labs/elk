@@ -2,8 +2,8 @@
 import type { mastodon } from 'masto'
 import { useFeeds } from '~/composables/discovery'
 
-const paginator = useMastoClient().v1.timelines.listPublic({ limit: 30, local: true })
-const stream = $(useStreaming(client => client.v1.stream.streamCommunityTimeline()))
+const paginator = useMastoClient().v1.timelines.listPublic({ limit: 15, local: true })
+const stream = useStreaming(client => client.v1.stream.streamCommunityTimeline())
 const processableItems = ref<mastodon.v1.Status[]>([])
 
 const excludeMissingAltTextInGlobal = usePreferences('excludeMissingAltTextInGlobal')

@@ -55,7 +55,7 @@ export function useConversations() {
         conversations[accountId]![1].unshift(n)
     }))
 
-    const paginator = client.v1.conversations.list({ limit: 30 })
+    const paginator = client.v1.conversations.list({ limit: 15 })
     do {
       const result = await paginator.next()
       if (!result.done && result.value.length) {

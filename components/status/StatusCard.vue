@@ -190,7 +190,7 @@ const targetIsVisible = refDebounced(refThrottled(useElementVisibility(target), 
 
         <!-- Main -->
         <div flex="~ col 1" min-w-0>
-          <div ref="quotableElement" style="padding: 2rem;">
+          <div ref="quotableElement" :class="[isBeingQuoted ? 'p-[2rem]' : null]">
             <!-- Account Info -->
             <div flex items-center space-x-1>
               <AccountHoverWrapper :account="status.account" :disabled="!currentUser">

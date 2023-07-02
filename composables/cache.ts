@@ -4,8 +4,8 @@ import { isEnrichable } from './discovery/feeds'
 
 // expire in an hour
 const cache = new LRUCache<string, any>({
-  max: 1000,
-  ttl: 180000, // check every 3 minutes
+  max: 500,
+  ttl: 300000, // check every 5 minutes
   ttlAutopurge: true,
   allowStaleOnFetchAbort: true,
   allowStaleOnFetchRejection: true,
@@ -71,7 +71,7 @@ export function extractAccountWebfinger(webfingerOrUriOrUrl: string) {
     .replace('/u/', '/@')
     .replace('@@', '@')
     .replace(/^@+/i, '')
-    .replace(/\/statuses\/[0-9a-z\/]+$/ig, '')
+    .replace(/\/statuses\/[_0-9a-z\-\/]+$/ig, '')
 
   if (normalizedValue.includes('/@')) {
     const splitValue = normalizedValue.split('/@')

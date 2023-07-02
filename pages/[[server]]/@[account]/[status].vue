@@ -29,8 +29,8 @@ const { data: context, pending: pendingContext, refresh: refreshContext } = useA
   { watch: [isHydrated], immediate: isHydrated.value, lazy: true, default: () => shallowRef() },
 )
 
-// if (pendingContext)
-//   watchOnce(pendingContext, scrollTo)
+if (pendingContext)
+  watchOnce(pendingContext, scrollTo)
 
 if (pending)
   watchOnce(pending, scrollTo)
@@ -99,6 +99,9 @@ async function toggleQuote<T extends Node>(quotableElement: T) {
             return '#111111'
         }
       })
+
+      isBeingQuoted.value = true
+
       const canvasWithQuote = await domToCanvas(quotableElement, {
         backgroundColor: quoteBackgroundColor.value,
         scale: 1.0,
@@ -106,10 +109,26 @@ async function toggleQuote<T extends Node>(quotableElement: T) {
           preferredFormat: 'woff',
         },
       })
+        .then(r => r)
+        .catch((e) => {
+          console.error('Error encountered while quoting a post', (e as Error).message)
+          return null
+        })
+
+      if (!canvasWithQuote) {
+        isBeingQuoted.value = false
+        return
+      }
+
       canvasWithQuote.toBlob(async (blob: Blob | null) => {
         if (blob) {
-          isBeingQuoted.value = true
-          isBeingQuoted.value = await attachQuote(blob)
+          await attachQuote(blob).then((didQuote) => {
+            isBeingQuoted.value = didQuote
+          })
+            .catch((e) => {
+              console.error('Error encountered while attaching QT', (e as Error).message)
+              isBeingQuoted.value = false
+            })
         }
         else {
           isBeingQuoted.value = false

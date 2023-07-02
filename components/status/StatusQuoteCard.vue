@@ -166,7 +166,7 @@ const targetIsVisible = refThrottled(useElementVisibility(target), 1000, true, f
         :target-is-visible="targetIsVisible"
       />
       <!-- END -->
-      <div
+      <!-- <div
         v-if="!isCompact && !inNotification && !actions"
         flex justify-between mt-4
       >
@@ -182,7 +182,7 @@ const targetIsVisible = refThrottled(useElementVisibility(target), 1000, true, f
         >
           <div text-2xl i-ri:mastodon-fill text-secondary />
         </NuxtLink>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>

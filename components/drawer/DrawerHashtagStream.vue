@@ -8,7 +8,7 @@ const { isLoading, selectedTagName } = defineProps<{
 }>()
 
 const tagName = $$(selectedTagName)
-const paginator = useMastoClient().v1.timelines.listHashtag(tagName.value, { limit: 10 })
+const paginator = useMastoClient().v1.timelines.listHashtag(tagName.value, { limit: 15 })
 const stream = $(useStreaming(client => client.v1.stream.streamTagTimeline(tagName.value)))
 const processableItems = ref<mastodon.v1.Status[]>([])
 

@@ -2,8 +2,8 @@
 import type { mastodon } from 'masto'
 import { useFeeds } from '~/composables/discovery'
 
-const paginator = useMastoClient().v1.timelines.listPublic({ limit: 10 })
-const stream = $(useStreaming(client => client.v1.stream.streamPublicTimeline()))
+const paginator = useMastoClient().v1.timelines.listPublic({ limit: 15 })
+const stream = useStreaming(client => client.v1.stream.streamPublicTimeline())
 const processableItems = ref<mastodon.v1.Status[]>([])
 
 const excludeMissingAltTextInGlobal = usePreferences('excludeMissingAltTextInGlobal')
@@ -72,7 +72,7 @@ function preprocessGlobalFeed(_items: mastodon.v1.Status[]): mastodon.v1.Status[
 <template>
   <template v-if="isHydrated">
     <div>
-      <TimelinePaginator v-bind="{ paginator, stream }" :preprocess="preprocessGlobalFeed" :buffer="10" context="public" />
+      <TimelinePaginator v-bind="{ paginator, stream }" :preprocess="preprocessGlobalFeed" :buffer="8" context="public" />
     </div>
   </template>
 </template>

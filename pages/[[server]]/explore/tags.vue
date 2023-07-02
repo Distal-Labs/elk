@@ -11,7 +11,7 @@ const isSourceFeditrends = $computed(() => trendSource && (trendingTags.length >
 
 const hideTips = useLocalStorage(STORAGE_KEY_HIDE_EXPLORE_TAGS_TIPS, false)
 
-const paginator = computed(() => (currentUser.value || trendingTags.length === 0) ? useMastoClient().v1.trends.listTags({ limit: 20 }) : undefined)
+const paginator = computed(() => (currentUser.value || trendingTags.length === 0) ? useMastoClient().v1.trends.listTags({ limit: 15 }) : undefined)
 
 useHydratedHead({
   title: () => `${t('tab.hashtags')} | ${t('nav.explore')}`,

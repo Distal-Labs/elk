@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const paginator = useMastoClient().v1.notifications.list({ limit: 30, types: ['status'], excludeTypes: ['mention', 'reblog'] })
+const paginator = useMastoClient().v1.notifications.list({ limit: 15, types: ['status'], excludeTypes: ['mention', 'reblog'] })
 </script>
 
 <template>

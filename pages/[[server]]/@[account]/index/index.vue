@@ -14,7 +14,7 @@ function preprocess(items: mastodon.v1.Status[]) {
   return preprocessTimeline(items, 'account')
 }
 
-const paginator = account ? useMastoClient().v1.accounts.listStatuses(account.id, { limit: 30, excludeReplies: true }) : undefined
+const paginator = account ? useMastoClient().v1.accounts.listStatuses(account.id, { limit: 15, excludeReplies: true }) : undefined
 
 if (account) {
   useHydratedHead({
