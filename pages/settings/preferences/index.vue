@@ -117,12 +117,12 @@ const userSettings = useUserSettings()
       <div i-ri-flask-line />
       {{ $t('settings.preferences.title') }}
     </h2>
-    <SettingsToggleItem
+    <!-- <SettingsToggleItem
       :checked="getPreferences(userSettings, 'experimentalVirtualScroller')"
       @click="togglePreferences('experimentalVirtualScroller')"
     >
       {{ $t('settings.preferences.virtual_scroll') }}
-    </SettingsToggleItem>
+    </SettingsToggleItem> -->
     <SettingsToggleItem
       :checked="getPreferences(userSettings, 'experimentalGitHubCards')"
       @click="togglePreferences('experimentalGitHubCards')"

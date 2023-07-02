@@ -13,7 +13,7 @@ const { paginator, stream, isCompact = false } = defineProps<{
 }>()
 
 const { formatNumber } = useHumanReadableNumber()
-const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
+const virtualScroller = false // $(usePreferences('experimentalVirtualScroller'))
 const processableItems = ref<mastodon.v1.Notification[]>([])
 
 const groupCapacity = Number.MAX_VALUE // No limit

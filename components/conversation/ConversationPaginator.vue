@@ -10,7 +10,7 @@ const { paginator, stream, preprocess } = defineProps<{
   preprocess?: (items: mastodon.v1.Conversation[]) => mastodon.v1.Conversation[]
 }>()
 
-const virtualScroller = $(usePreferences('experimentalVirtualScroller'))
+const virtualScroller = false // $(usePreferences('experimentalVirtualScroller'))
 
 const { formatNumber } = useHumanReadableNumber()
 </script>
