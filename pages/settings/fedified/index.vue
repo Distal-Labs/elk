@@ -44,12 +44,12 @@ const userSettings = useUserSettings()
         @click="togglePreferences('excludeBotsInHome')"
       />
 
-      <SettingsToggleItem
+      <!-- <SettingsToggleItem
         :text="$t('settings.fedified.feeds.home.exclude_dms')"
         :tooltip="$t('settings.fedified.feeds.tooltips.exclude_dms', ['Home'])"
         :checked="getPreferences(userSettings, 'excludeDMsInHome')"
         @click="togglePreferences('excludeDMsInHome')"
-      />
+      /> -->
 
       <SettingsToggleItem
         :text="$t('settings.fedified.feeds.home.exclude_nonthread_replies')"
@@ -121,12 +121,12 @@ const userSettings = useUserSettings()
         @click="togglePreferences('excludeBoostsInNotifications')"
       />
 
-      <SettingsToggleItem
+      <!-- <SettingsToggleItem
         :text="$t('settings.fedified.feeds.notifications.exclude_dms')"
         :tooltip="$t('settings.fedified.feeds.tooltips.exclude_dms', ['Notifications'])"
         :checked="getPreferences(userSettings, 'excludeDMsInNotifications')"
         @click="togglePreferences('excludeDMsInNotifications')"
-      />
+      /> -->
 
       <!-- <SettingsToggleItem
         :text="$t('settings.fedified.feeds.notifications.exclude_mentions_from_unfamiliar')"

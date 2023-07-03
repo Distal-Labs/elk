@@ -1,5 +1,6 @@
 import type { mastodon } from 'masto'
 import { normalizeAndCacheThirdPartyStatus } from './cache'
+import { isProcessableItem } from './discovery'
 import { STORAGE_KEY_TRENDS } from '~/constants'
 import { type FedifiedTrends } from '~/types'
 
@@ -116,7 +117,7 @@ async function fetchTrendingPosts(): Promise<void> {
     for await (const item of data.value) {
       fetchStatus(item.uri)
         .then((aPost) => {
-          if (aPost)
+          if (aPost && isProcessableItem(aPost))
             posts.push(aPost)
         }).catch(() => undefined)
     }

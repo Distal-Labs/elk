@@ -12,7 +12,24 @@ function conversationFilterContext(conversations: mastodon.v1.Conversation[], co
 
 export function applyConversationFilterContext(feedItems: mastodon.v1.Conversation[]): mastodon.v1.Conversation[] {
   // Remove conversations that contain statuses with one or more filtered statuses
-  return conversationFilterContext(conversationFilterContext(feedItems, 'home'), 'thread')
+  const filtered = conversationFilterContext(feedItems, 'home')
+
+  return filtered.sort((a, b) => {
+    const readUnread = ((a.unread) ? 0 : 1) - ((b.unread) ? 0 : 1)
+    if (readUnread !== 0) {
+      if (a.lastStatus && b.lastStatus)
+        return readUnread + (Date.parse(b.lastStatus.createdAt) - Date.parse(a.lastStatus.createdAt))
+
+      return readUnread
+    }
+    else if (a.unread && !b.unread) {
+      return -1
+    }
+    else if (!a.unread && b.unread) {
+      return 1
+    }
+    else { return 0 }
+  })
 }
 
 function notificationFilterContext(notifications: mastodon.v1.Notification[], context: mastodon.v1.FilterContext): mastodon.v1.Notification[] {

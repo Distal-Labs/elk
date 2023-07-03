@@ -13,7 +13,9 @@ const lang = $computed(() => {
   return (count > 1 || count === 0) ? undefined : items.items[0].status?.language
 })
 
-const { dismissOneNotification } = useNotifications()
+const { name: routeName } = useRoute()
+
+const { dismissOneNotification } = useNotifications(routeName ? routeName.toString() : 'notifications-followers')
 const target = ref(null)
 const targetIsVisible = useElementVisibility(target)
 
@@ -25,6 +27,7 @@ watch(
         dismissOneNotification(item.id)
     }
   },
+  { immediate: true },
 )
 </script>
 

@@ -1,4 +1,5 @@
 import type { mastodon } from 'masto'
+import type { GroupedLikeNotifications, GroupedNotifications } from '~/types'
 
 interface FeedOptions {
   // Metadata attributes
@@ -580,10 +581,23 @@ export function useFeeds(relationships: mastodon.v1.Relationship[] = []) {
 
   return {
     shouldBeInHome: (item: mastodon.v1.Status) => shouldBeInFeed(item, homeFeed, onlyAccountIds, excludeAccountIds),
-    shouldBeInNotifications: (item: mastodon.v1.Notification) => {
+    shouldBeInNotifications: (item: mastodon.v1.Notification | GroupedNotifications | GroupedLikeNotifications) => {
       if (!currentUser.value)
         return false
-      else if (item.status && (item.status.account.id !== currentUser.value.account.id))
+      else if (
+        ('status' in item)
+        && item.status
+        && (item.status.visibility === 'direct')
+      )
+        return false
+
+      else if ((item.type === 'grouped-follow') || (item.type === 'grouped-reblogs-and-favourites'))
+        return true
+      else if (
+        item.status
+        && (item.status.visibility !== 'direct')
+        && (item.status.account.id !== currentUser.value.account.id)
+      )
         return shouldBeInFeed(item.status, notificationsFeed, onlyAccountIds, excludeAccountIds)
       else
         return true

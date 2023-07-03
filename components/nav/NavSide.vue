@@ -6,8 +6,8 @@ const { command } = defineProps<{
 const route = useRoute()
 const disableCompose = computed(() => route.path?.startsWith('/compose'))
 
-const { countActiveNotifications } = useNotifications()
-const { countUnreadConversations } = useConversations()
+const { countActiveNotifications } = useNotifications(route.name?.toString() ?? 'home')
+const { countUnreadConversations } = useConversations(route.name?.toString() ?? 'home')
 const { width: windowWidth, height: windowHeight } = useWindowSize()
 
 const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
@@ -15,13 +15,13 @@ const useStarFavoriteIcon = usePreferences('useStarFavoriteIcon')
 const isNarrowWindow = computed(() => windowWidth.value < 640)
 const isShortWindow = computed(() => windowHeight.value < 720)
 
-const countNotifications = $computed(() => {
+const countNotifications = computedEager(() => {
   if (windowWidth.value < 640)
     return 0
-  return countActiveNotifications('all')
+  return countActiveNotifications()
 })
 
-const countConversations = $computed(() => {
+const countConversations = computedEager(() => {
   if (windowWidth.value < 640)
     return 0
   return countUnreadConversations.value

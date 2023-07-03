@@ -1,9 +1,11 @@
 <script setup lang="ts">
-const paginator = useMastoClient().v1.notifications.list({ limit: 15, types: ['follow', 'follow_request'] })
+const { name: routeName } = useRoute()
+
+const { paginator } = useNotifications(routeName ? routeName.toString() : 'notifications-followers')
 </script>
 
 <template>
-  <template v-if="!!currentUser">
-    <NotificationPaginator v-bind="{ paginator }" />
+  <template v-if="!!currentUser && paginator">
+    <NotificationPaginator :paginator="paginator" />
   </template>
 </template>

@@ -65,7 +65,9 @@ watchImmediate(post, () => {
     _status.value = post
 })
 
-const { isConversationUnread, markConversationRead } = useConversations()
+const route = useRoute()
+
+const { isConversationUnread, markConversationRead } = useConversations(route.name?.toString() ?? 'home')
 
 const isStatusUnread = computed(() => isConversationUnread(status.value.id))
 

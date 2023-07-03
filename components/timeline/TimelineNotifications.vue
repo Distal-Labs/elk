@@ -1,11 +1,12 @@
 <script setup lang="ts">
-// Default limit is 20 notifications, and servers are normally caped to 30
-const paginator = useMastoClient().v1.notifications.list({ limit: 15 })
+const { name: routeName } = useRoute()
+
+const { paginator } = useNotifications(routeName ? routeName.toString() : 'notifications')
 const stream = useStreaming(client => client.v1.stream.streamUser())
 </script>
 
 <template>
-  <template v-if="!!currentUser">
-    <NotificationPaginator v-bind="{ paginator, stream }" />
+  <template v-if="!!currentUser && paginator">
+    <NotificationPaginator :paginator="paginator" :stream="stream" />
   </template>
 </template>

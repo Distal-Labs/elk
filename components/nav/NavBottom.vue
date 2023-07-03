@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computedEager } from '@vueuse/core'
 import { ROUTES_THAT_SWITCH_USER_CONTEXT } from '~/constants'
 
 const router = useRouter()
@@ -9,8 +10,8 @@ const moreMenuVisible = ref(false)
 onMounted(() => {
   backRef.value = ''
 })
-const { countActiveNotifications } = useNotifications()
-const { countUnreadConversations } = useConversations()
+const { countActiveNotifications } = useNotifications(router.currentRoute.value.name?.toString() ?? 'home')
+const { countUnreadConversations } = useConversations(router.currentRoute.value.name?.toString() ?? 'home')
 const { width: windowWidth } = useWindowSize()
 
 router.afterEach(async (to, from) => {
@@ -24,13 +25,13 @@ router.afterEach(async (to, from) => {
     backRef.value = router.currentRoute.value.path
 })
 
-const countNotifications = $computed(() => {
+const countNotifications = computedEager(() => {
   if (windowWidth.value < 640)
-    return countActiveNotifications('all')
+    return countActiveNotifications()
   return 0
 })
 
-const countConversations = $computed(() => {
+const countConversations = computedEager(() => {
   if (windowWidth.value < 640)
     return countUnreadConversations.value
   return 0

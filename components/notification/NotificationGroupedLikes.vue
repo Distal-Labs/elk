@@ -7,10 +7,12 @@ const { group } = defineProps<{
   group: GroupedLikeNotifications
 }>()
 
+const { name: routeName } = useRoute()
+
 const reblogs = $computed(() => group.likes.filter(i => i.reblog))
 const likes = $computed(() => group.likes.filter(i => i.favourite && !i.reblog))
 
-const { dismissOneNotification } = useNotifications()
+const { dismissOneNotification } = useNotifications(routeName ? routeName.toString() : 'notifications')
 const target = ref(null)
 const targetIsVisible = useElementVisibility(target)
 
@@ -27,6 +29,7 @@ watch(
       }
     }
   },
+  { immediate: true },
 )
 </script>
 

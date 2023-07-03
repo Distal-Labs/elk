@@ -5,9 +5,9 @@ const props = withDefaults(defineProps<{
   card: mastodon.v1.PreviewCard
   linkToStatus: URL
   sourceStatus?: mastodon.v1.Status
-  inNotification?: boolean
+  isCompact?: boolean
 }>(), {
-  inNotification: false,
+  isCompact: false,
 })
 
 const userSettings = useUserSettings()

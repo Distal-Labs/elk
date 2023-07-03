@@ -1,4 +1,4 @@
-import type { Paginator, WsEvents, mastodon } from 'masto'
+import type { EventType, Paginator, WsEvents, mastodon } from 'masto'
 import type { Ref } from 'vue'
 import { isCacheable, isProcessableItem } from './discovery'
 import type { PaginatorState } from '~/types'
@@ -6,7 +6,7 @@ import type { PaginatorState } from '~/types'
 export function usePaginator<T, P, U = T>(
   _paginator: Paginator<T[], P>,
   stream: Ref<Promise<WsEvents> | undefined>,
-  eventType: 'notification' | 'update' = 'update',
+  eventType: EventType = 'update',
   preprocess: (items: (T | U)[]) => U[] = items => items as unknown as U[],
   buffer = 6,
 ) {
@@ -29,7 +29,13 @@ export function usePaginator<T, P, U = T>(
 
   function update() {
     // This is called when the user clicks on the "Show more items banner" (scroll up, and there is a streaming connection with more items to show)
+    if (eventType === 'notification') {
+      (items.value as U[]) = preprocess([...(prevItems.value as U[]), ...(items.value as U[])])
+      prevItems.value = []
+      return
+    }
     (items.value as U[]).unshift(...(prevItems.value as U[]))
+
     prevItems.value = []
   }
 
@@ -58,7 +64,8 @@ export function usePaginator<T, P, U = T>(
             const index = queuedItems.value.findIndex((i: any) => i.id === wsEvent.id)
             if (index >= 0)
               queuedItems.value.splice(index, 1)
-            queuedItems.value.unshift(wsEvent as any)
+            if ('type' in wsEvent)
+              queuedItems.value.unshift(wsEvent as any)
           }
         }
       })
@@ -73,7 +80,9 @@ export function usePaginator<T, P, U = T>(
             const index = queuedItems.value.findIndex((i: any) => i.id === wsEvent.id)
             if (index >= 0)
               queuedItems.value.splice(index, 1)
-            queuedItems.value.unshift(wsEvent as any)
+
+            if ('type' in wsEvent)
+              queuedItems.value.unshift(wsEvent as any)
           }
         }
       })
@@ -132,7 +141,7 @@ export function usePaginator<T, P, U = T>(
         if (process.dev)
           console.warn('Items being added', preprocessedItems.length);
         // Comment to keep upstream linting preferences from messing this up
-        (prevItems.value as U[]).unshift(...preprocessedItems)
+        (prevItems.value as U[]).unshift(...preprocessedItems.filter(_ => !!_))
         // Comment to keep upstream linting preferences from messing this up
         queuedItems.value = []
       }

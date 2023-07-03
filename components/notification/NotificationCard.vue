@@ -8,9 +8,11 @@ const { notification, isCompact } = defineProps<{
   isCompact?: boolean
 }>()
 
-const post = ref<mastodon.v1.Status | null | undefined>(notification.status)
+const route = useRoute()
 
-const { dismissOneNotification } = useNotifications()
+const routeName = route.name?.toString() ?? 'notifications'
+
+const { dismissOneNotification } = useNotifications(routeName)
 const target = ref(null)
 const targetIsVisible = useElementVisibility(target)
 
@@ -33,7 +35,7 @@ watch(
           ps-3 pe-4 inset-is-0
           rounded-ie-be-3
           py-3 bg-base top-0
-          :lang="post?.language ?? undefined"
+          :lang="notification.status?.language ?? undefined"
         >
           <div i-ri:user-follow-fill me-1 color-primary />
           <AccountDisplayName :account="notification.account" text-primary me-1 font-bold line-clamp-1 ws-pre-wrap break-all />
@@ -43,7 +45,7 @@ watch(
         </div>
         <AccountBigCard
           :account="notification.account"
-          :lang="post?.language ?? undefined"
+          :lang="notification.status?.language ?? undefined"
         />
       </NuxtLink>
     </template>
@@ -82,8 +84,8 @@ watch(
       <!-- TODO: accept request -->
       <AccountCard :account="notification.account" />
     </template>
-    <template v-else-if="post && notification.type === 'update'">
-      <StatusCard :status="post" :in-notification="true" :actions="false">
+    <template v-else-if="notification.status && notification.type === 'update'">
+      <StatusCard :status="notification.status" :in-notification="true" :actions="false">
         <template #meta>
           <div flex="~" gap-1 items-center mt1>
             <div i-ri:edit-2-fill text-xl me-1 text-secondary />
@@ -95,8 +97,8 @@ watch(
         </template>
       </StatusCard>
     </template>
-    <template v-else-if="post">
-      <StatusCard :status="post" :actions="true" :in-notification="true" />
+    <template v-else-if="notification.status && (notification.type === 'status' || notification.type === 'mention' || notification.type === 'poll')">
+      <StatusCard :status="notification.status" :actions="true" :in-notification="true" />
     </template>
     <template v-else>
       <!-- type 'favourite' and 'reblog' should always rendered by NotificationGroupedLikes -->

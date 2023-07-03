@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // @ts-expect-error missing types
 import { DynamicScrollerItem } from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import type { Paginator, WsEvents, mastodon } from 'masto'
 import type { GroupedAccountLike, NotificationSlot } from '~/types'
-import { useFeeds } from '~/composables/discovery'
 
 const { paginator, stream, isCompact = false } = defineProps<{
   paginator: Paginator<mastodon.v1.Notification[], mastodon.v1.ListNotificationsParams>
@@ -14,7 +14,6 @@ const { paginator, stream, isCompact = false } = defineProps<{
 
 const { formatNumber } = useHumanReadableNumber()
 const virtualScroller = false // $(usePreferences('experimentalVirtualScroller'))
-const processableItems = ref<mastodon.v1.Notification[]>([])
 
 const groupCapacity = Number.MAX_VALUE // No limit
 
@@ -128,81 +127,10 @@ function groupItems(items: mastodon.v1.Notification[]): NotificationSlot[] {
   return results
 }
 
-const excludeMissingAltTextInNotifications = usePreferences('excludeMissingAltTextInNotifications')
-const excludeAltTextMinderInNotifications = usePreferences('excludeAltTextMinderInNotifications')
-const excludeBoostsInNotifications = usePreferences('excludeBoostsInNotifications')
-const excludeDMsInNotifications = usePreferences('excludeDMsInNotifications')
-const excludeNSFWInNotifications = usePreferences('excludeNSFWInNotifications')
-const excludeMentionsFromUnfamiliarAccountsInNotifications = usePreferences('excludeMentionsFromUnfamiliarAccountsInNotifications')
-const excludeSpammersInNotifications = usePreferences('excludeSpammersInNotifications')
-const experimentalAntagonistFilterLevel = usePreferences('experimentalAntagonistFilterLevel')
-
-const { data: feeds } = useAsyncData(
-  async () => {
-    if (!processableItems.value || processableItems.value.length === 0)
-      return useFeeds()
-
-    if (
-      (!excludeMentionsFromUnfamiliarAccountsInNotifications)
-      && (experimentalAntagonistFilterLevel.value < 5)
-    ) {
-      return useFeeds()
-    }
-
-    else {
-      const relationships: mastodon.v1.Relationship[] = await useMastoClient().v1.accounts.fetchRelationships(processableItems.value.map(x => x.account.id))
-        .then(rels => rels)
-        .catch((e) => {
-          if (process.dev)
-            console.error('Unable to retrieve relationships', (e as Error).message)
-          return []
-        })
-
-      return useFeeds(relationships)
-    }
-  },
-  {
-    watch: [
-      processableItems,
-      excludeMissingAltTextInNotifications,
-      excludeAltTextMinderInNotifications,
-      excludeBoostsInNotifications,
-      excludeDMsInNotifications,
-      excludeNSFWInNotifications,
-      excludeMentionsFromUnfamiliarAccountsInNotifications,
-      excludeSpammersInNotifications,
-      experimentalAntagonistFilterLevel,
-      currentUser,
-    ],
-    immediate: true,
-    default: () => shallowRef(useFeeds()),
-  },
-)
-
-/*
 function removeFiltered(items: mastodon.v1.Notification[]): mastodon.v1.Notification[] {
   return items.filter(item => !item.status?.filtered?.find(
     filter => filter.filter.filterAction === 'hide' && filter.filter.context.includes('notifications'),
   ))
-}
-*/
-
-function preprocessNotifications(_items: mastodon.v1.Notification[]): mastodon.v1.Notification[] {
-  if (!currentUser.value)
-    return Array<mastodon.v1.Notification>()
-
-  // Avoid updating processableItems unless that's going to change the feed logic
-  if (
-    (excludeMentionsFromUnfamiliarAccountsInNotifications.value === true)
-    || (experimentalAntagonistFilterLevel.value === 5)
-  ) {
-    processableItems.value = _items.filter(feeds.value.shouldBeInNotifications)
-
-    return applyNotificationFilterContext([...processableItems.value])
-  }
-  else {
-    return applyNotificationFilterContext(_items.filter(useFeeds().shouldBeInNotifications))
-  }
 }
 
 function preprocessAndGroupNotifications(items: NotificationSlot[]): NotificationSlot[] {
@@ -224,7 +152,7 @@ function preprocessAndGroupNotifications(items: NotificationSlot[]): Notificatio
       flattenedNotifications.push(item)
     }
   }
-  return groupItems(preprocessNotifications(flattenedNotifications))
+  return groupItems(removeFiltered(flattenedNotifications))
 }
 </script>
 
@@ -233,10 +161,11 @@ function preprocessAndGroupNotifications(items: NotificationSlot[]): Notificatio
   <CommonPaginator
     :paginator="paginator"
     :stream="stream"
-    :preprocess="preprocessAndGroupNotifications"
-    :buffer="0"
     :virtualScroller="virtualScroller"
+    event-type="notification"
+    :preprocess="preprocessAndGroupNotifications"
     end-message="You are all caught up!"
+    :buffer="6"
   >
     <template #updater="{ number, update }">
       <button py-4 border="b base" flex="~ col" p-3 w-full text-primary font-bold @click="() => { update(); }">
@@ -276,7 +205,7 @@ function preprocessAndGroupNotifications(items: NotificationSlot[]): Notificatio
           border="b base"
         />
         <NotificationCard
-          v-else
+          v-else-if="!!item.type"
           :notification="item"
           :is-compact="isCompact"
           border="b base"

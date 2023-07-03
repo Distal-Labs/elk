@@ -3,11 +3,9 @@ const { routeName } = defineProps<{
   routeName: string
 }>()
 
-const { t } = useI18n()
-
 const mask = useMask()
 
-const { countActiveNotifications, dismissAllNotifications } = useNotifications()
+const { countActiveNotifications, dismissAllNotifications } = useNotifications(routeName)
 
 function clearAllNotifications() {
   if (process.dev)
@@ -16,7 +14,7 @@ function clearAllNotifications() {
 }
 
 const countNotifications = $computed(() => {
-  return countActiveNotifications('all') ?? 0
+  return countActiveNotifications() ?? 0
 })
 </script>
 
