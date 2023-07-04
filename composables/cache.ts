@@ -4,14 +4,14 @@ import { isEnrichable } from './discovery/feeds'
 
 // expire in an hour
 const cache = new LRUCache<string, any>({
-  max: 500,
-  ttl: 300000, // check every 5 minutes
+  max: 1000,
+  ttl: 360000, // check every 6 minutes
   ttlAutopurge: true,
   allowStaleOnFetchAbort: true,
   allowStaleOnFetchRejection: true,
   allowStale: false,
   noUpdateTTL: true,
-  ttlResolution: 60000,
+  ttlResolution: 120000, // check every 2 minutes
 })
 
 if (process.dev && process.client)

@@ -3,7 +3,7 @@ import { useFeeds } from '~/composables/discovery'
 
 const notifications = reactive<Record<string, undefined | [Promise<WsEvents>, mastodon.v1.Notification[]]>>({})
 
-const maxItemsToPreload = 1000
+const maxItemsToPreload = 120
 const pageSize = 20
 
 export function useNotifications(_routeName: string) {
